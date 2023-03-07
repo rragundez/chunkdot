@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "cosine-similarity-top-k"
+version = "0.1.0"
+description = ""
+authors = ["Rodrigo Agundez <rodrigo.agundez@adidas.com>"]
+readme = "README.md"
+packages = [{include = "cosine_similarity_top_k"}]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.12"
+numba = "^0.56.4"
+numpy = "^1.23"
+scipy = "^1.10.1"
+
+[tool.poetry.group.dev.dependencies]
+jupyter = "^1.0.0"
+scikit-learn = "^1.2.1"
+matplotlib = "^3.7.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
