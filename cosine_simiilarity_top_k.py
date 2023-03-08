@@ -36,7 +36,7 @@ def get_chunk_size_per_thread(n_items, top_k, max_memory_to_use=None, force_memo
     """
     # For safety use only 95% of the available memory
     max_memory = get_memory_available() * 0.95
-    max_memory_to_use = max_memory
+    memory_to_use = max_memory
     if max_memory_to_use:
         if max_memory_to_use > max_memory:
             message = (
@@ -124,12 +124,18 @@ def cosine_similarity_top_k(embedings, top_k=None, max_memory_to_use=None, force
             c. Collect such values and column indices into outer scope arrays.
         5. Create a CSR matrix from all values and indices and return it.
     """
+    l2_norms = np.sqrt(np.einsum("ij,ij->i", embedings, embedings))
+    embedings /= l2_norms[:, np.newaxis]
     n_rows = embedings.shape[0]
-    if top_k is None:
-        top_k = n_rows
-    #     warm_up_numba_function()
-    chunk_size_per_thread = get_chunk_size_per_thread(
-        n_rows, top_k, max_memory_to_use, force_memory
-    )
-    values, indices, indptr = chunked_dot(embedings, embedings.T, top_k, chunk_size_per_thread)
-    return csr_matrix((values, indices, indptr))
+    if top_k is None or top_k == n_rows:
+        result = csr_matrix(np.dot(embedings, embedings.T))
+    elif top_k > n_rows:
+        raise ValueError("Requested more similar items than available items.")
+    else:
+        chunk_size_per_thread = get_chunk_size_per_thread(
+            n_rows, top_k, max_memory_to_use, force_memory
+        )
+        values, indices, indptr = chunked_dot(embedings, embedings.T, top_k, chunk_size_per_thread)
+        result = csr_matrix((values, indices, indptr), shape=(n_rows, n_rows))
+
+    return result
