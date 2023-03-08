@@ -45,12 +45,12 @@ def _partition_factory(pivotimpl, argpartition=False):
         if argpartition:
             I[i], I[high] = I[high], I[i]
         return i
+
     return _partition
 
 
-_argpartition_w_nan = register_jitable(_partition_factory(
-    nan_aware_less_than,
-    argpartition=True)
+_argpartition_w_nan = register_jitable(
+    _partition_factory(nan_aware_less_than, argpartition=True)
 )
 
 
@@ -68,6 +68,7 @@ def _select_factory(partitionimpl):
                 high = i - 1
                 i = partitionimpl(arry, low, high, idx)
         return arry[k]
+
     return _select
 
 
@@ -76,7 +77,6 @@ _arg_select_w_nan = register_jitable(_select_factory(_argpartition_w_nan))
 
 @register_jitable
 def np_argpartition_impl_inner(a, kth_array):
-
     # allocate and fill empty array rather than copy a and mutate in place
     # as the latter approach fails to preserve strides
     out = np.empty_like(a, dtype=np.int64)
@@ -98,22 +98,21 @@ def np_argpartition_impl_inner(a, kth_array):
 
 @overload(np.argpartition)
 def np_argpartition(a, kth):
-
     if not isinstance(a, (types.Array, types.Sequence, types.Tuple)):
-        raise TypeError('The first argument must be an array-like')
+        raise TypeError("The first argument must be an array-like")
 
     if isinstance(a, types.Array) and a.ndim == 0:
-        raise TypeError('The first argument must be at least 1-D (found 0-D)')
+        raise TypeError("The first argument must be at least 1-D (found 0-D)")
 
-    kthdt = getattr(kth, 'dtype', kth)
+    kthdt = getattr(kth, "dtype", kth)
     if not isinstance(kthdt, (types.Boolean, types.Integer)):
         # bool gets cast to int subsequently
-        raise TypeError('Partition index must be integer')
+        raise TypeError("Partition index must be integer")
 
     def np_argpartition_impl(a, kth):
         a_tmp = _asarray(a)
         if a_tmp.size == 0:
-            return a_tmp.copy().astype('int64')
+            return a_tmp.copy().astype("int64")
         else:
             kth_array = valid_kths(a_tmp, kth)
             return np_argpartition_impl_inner(a_tmp, kth_array)
