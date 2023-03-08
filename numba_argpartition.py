@@ -1,3 +1,5 @@
+# pylint: skip-file
+
 from numba.extending import overload, register_jitable
 import numpy as np
 from numba.np.arraymath import _asarray, valid_kths, nan_aware_less_than
@@ -11,6 +13,7 @@ def _partition_factory(pivotimpl, argpartition=False):
         # partitioning gives good results (i.e. regular O(n log n))
         # on sorted, reverse-sorted, and uniform arrays.  Subtle changes
         # risk breaking this property.
+
         # Use median of three {low, middle, high} as the pivot
         if pivotimpl(A[mid], A[low]):
             A[low], A[mid] = A[mid], A[low]
@@ -32,6 +35,10 @@ def _partition_factory(pivotimpl, argpartition=False):
         i = low
         j = high - 1
         while True:
+            while i < high and pivotimpl(A[i], pivot):
+                i += 1
+            while j >= low and pivotimpl(pivot, A[j]):
+                j -= 1
             if i >= j:
                 break
             A[i], A[j] = A[j], A[i]
@@ -49,9 +56,7 @@ def _partition_factory(pivotimpl, argpartition=False):
     return _partition
 
 
-_argpartition_w_nan = register_jitable(
-    _partition_factory(nan_aware_less_than, argpartition=True)
-)
+_argpartition_w_nan = register_jitable(_partition_factory(nan_aware_less_than, argpartition=True))
 
 
 def _select_factory(partitionimpl):

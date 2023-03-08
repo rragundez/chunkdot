@@ -23,3 +23,14 @@ pandas = "^1.5.3"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+
+[tool.pylint.messages_control]
+max-line-length = 100
+max-args = 10
+disable = [
+  "missing-module-docstring",
+  "logging-fstring-interpolation",
+]
