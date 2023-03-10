@@ -9,4 +9,5 @@ echo "\nRunning pylint\n"
 poetry run pylint *.py
 
 echo "\n---- UNIT TESTS ----\n"
+echo "\nRunning pytest\n"
 poetry run pytest cosine_similarity_top_k_test.py

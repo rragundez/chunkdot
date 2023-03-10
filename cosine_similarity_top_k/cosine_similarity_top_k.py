@@ -113,7 +113,12 @@ def warm_up_chunked_dot():
 
 
 def cosine_similarity_top_k(
-    embedings, top_k=None, max_memory_to_use=None, force_memory=False, float_type="float64"
+    embedings,
+    top_k=None,
+    max_memory_to_use=None,
+    force_memory=False,
+    float_type="float64",
+    normalize=True,
 ):
     """Calculate cosine similarity and only keep the K most similar items for each item.
 
@@ -131,10 +136,14 @@ def cosine_similarity_top_k(
             c. Collect such values and column indices into outer scope arrays.
         5. Create a CSR matrix from all values and indices and return it.
     """
-
+    if float_type not in ("float32", "float64"):
+        raise ValueError("Cosine similarity top k only supports float32 and float64 types")
     embedings = embedings.astype(float_type)
-    l2_norms = np.sqrt(np.einsum("ij,ij->i", embedings, embedings))
-    embedings = embedings / l2_norms[:, np.newaxis]
+
+    if normalize:
+        l2_norms = np.sqrt(np.einsum("ij,ij->i", embedings, embedings))
+        embedings = embedings / l2_norms[:, np.newaxis]
+
     n_rows = embedings.shape[0]
     if top_k is None or top_k == n_rows:
         result = csr_matrix(np.dot(embedings, embedings.T))
