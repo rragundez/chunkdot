@@ -27,7 +27,9 @@ def get_memory_available():
     return psutil.virtual_memory().available
 
 
-def get_chunk_size_per_thread(n_items, top_k, embedding_dim, max_memory_to_use=None, force_memory=False):
+def get_chunk_size_per_thread(
+    n_items, top_k, embedding_dim, max_memory_to_use=None, force_memory=False
+):
     """Calculate the number of rows that can be calculated.
 
     Given the number of items, the amount of similar items requested and the limit for the memory
@@ -143,9 +145,12 @@ def cosine_similarity_top_k(
         l2_norms = np.sqrt(np.einsum("ij,ij->i", embedings, embedings))
         embedings = embedings / l2_norms[:, np.newaxis]
 
-    abs_top_k = abs(top_k)
     n_rows, embedding_dim = embedings.shape
-    if top_k is None or abs_top_k == n_rows:
+    if top_k is None:
+        top_k = n_rows
+    abs_top_k = abs(top_k)
+
+    if abs_top_k == n_rows:
         result = csr_matrix(np.dot(embedings, embedings.T))
     elif abs_top_k > n_rows:
         raise ValueError("Requested more similar items than available items.")
