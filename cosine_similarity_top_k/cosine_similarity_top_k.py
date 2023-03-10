@@ -7,7 +7,7 @@ import numba
 import numpy as np
 from numba import njit, prange
 from scipy.sparse import csr_matrix
-import numba_argpartition  # pylint: disable=unused-import
+from cosine_similarity_top_k import numba_argpartition  # pylint: disable=unused-import
 
 LOGGER = logging.getLogger(__name__)
 
@@ -72,32 +72,37 @@ def _to_sparse(matrix, top_k):
     """
     # This line creates a new array with the same shape as "matrix" effectively doubling the
     # memory consumption.
-    top_k_j = np.argpartition(matrix, -top_k)[:, -top_k:]
+    top_k_j = np.argpartition(matrix, -top_k)
+    if top_k > 0:
+        top_k_j = top_k_j[:, -top_k:]
+    else:
+        top_k_j = top_k_j[:, :-top_k]
     values = np.take_along_axis(matrix, top_k_j, axis=1).flatten()
     indices = top_k_j.flatten()
     return values, indices
 
 
-@njit(parallel=True)
+@njit(parallel=False)
 def chunked_dot(matrix_left, matrix_right, top_k, chunk_size):
     """Parallelize the matrix multiplication by converting x into chunks."""
     n_rows = len(matrix_left)
-    n_non_zero = n_rows * top_k
+    abs_top_k = abs(top_k)
+    n_non_zero = n_rows * abs_top_k
     all_values, all_indices, all_indptr = (
-        np.empty(n_non_zero),
-        np.empty(n_non_zero),
-        np.empty(n_rows + 1),
+        np.zeros(n_non_zero, dtype="float64"),
+        np.empty(n_non_zero, dtype="int64"),
+        np.empty(n_rows + 1, dtype="int64"),
     )
     all_indptr[0] = 0
     # Round up since the last's iteration chunk <= chunk_size
-    for i in prange(0, math.ceil(n_rows / chunk_size)):  # pylint: disable=not-an-iterable
+    for i in range(0, math.ceil(n_rows / chunk_size)):  # pylint: disable=not-an-iterable
         start_row_i, end_row_i = i * chunk_size, (i + 1) * chunk_size
         chunk_m = np.dot(matrix_left[start_row_i:end_row_i], matrix_right)
         values, indices = _to_sparse(chunk_m, top_k)
-        all_values[start_row_i * top_k : end_row_i * top_k] = values
-        all_indices[start_row_i * top_k : end_row_i * top_k] = indices
+        all_values[start_row_i * abs_top_k : end_row_i * abs_top_k] = values
+        all_indices[start_row_i * abs_top_k : end_row_i * abs_top_k] = indices
     # standard CSR form representation
-    all_indptr = np.arange(0, top_k * (1 + n_rows), top_k)
+    all_indptr = np.arange(0, abs_top_k * (1 + n_rows), abs_top_k)
     return all_values, all_indices, all_indptr
 
 
@@ -107,7 +112,9 @@ def warm_up_chunked_dot():
     chunked_dot(matrix, matrix.T, 10, 5000)
 
 
-def cosine_similarity_top_k(embedings, top_k=None, max_memory_to_use=None, force_memory=False):
+def cosine_similarity_top_k(
+    embedings, top_k=None, max_memory_to_use=None, force_memory=False, float_type="float64"
+):
     """Calculate cosine similarity and only keep the K most similar items for each item.
 
     Returns:
@@ -124,8 +131,10 @@ def cosine_similarity_top_k(embedings, top_k=None, max_memory_to_use=None, force
             c. Collect such values and column indices into outer scope arrays.
         5. Create a CSR matrix from all values and indices and return it.
     """
+
+    embedings = embedings.astype(float_type)
     l2_norms = np.sqrt(np.einsum("ij,ij->i", embedings, embedings))
-    embedings /= l2_norms[:, np.newaxis]
+    embedings = embedings / l2_norms[:, np.newaxis]
     n_rows = embedings.shape[0]
     if top_k is None or top_k == n_rows:
         result = csr_matrix(np.dot(embedings, embedings.T))
@@ -136,6 +145,5 @@ def cosine_similarity_top_k(embedings, top_k=None, max_memory_to_use=None, force
             n_rows, top_k, max_memory_to_use, force_memory
         )
         values, indices, indptr = chunked_dot(embedings, embedings.T, top_k, chunk_size_per_thread)
-        result = csr_matrix((values, indices, indptr), shape=(n_rows, n_rows))
-
+        result = csr_matrix((values.astype(float_type), indices, indptr), shape=(n_rows, n_rows))
     return result
