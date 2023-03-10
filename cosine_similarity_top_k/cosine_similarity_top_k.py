@@ -27,7 +27,7 @@ def get_memory_available():
     return psutil.virtual_memory().available
 
 
-def get_chunk_size_per_thread(n_items, top_k, max_memory_to_use=None, force_memory=False):
+def get_chunk_size_per_thread(n_items, top_k, embedding_dim, max_memory_to_use=None, force_memory=False):
     """Calculate the number of rows that can be calculated.
 
     Given the number of items, the amount of similar items requested and the limit for the memory
@@ -40,8 +40,8 @@ def get_chunk_size_per_thread(n_items, top_k, max_memory_to_use=None, force_memo
     if max_memory_to_use:
         if max_memory_to_use > max_memory:
             message = (
-                f"Requested memory to use {max_memory_to_use / 1E9:.2f} is bigger than 95% of the "
-                f"system's available memory {max_memory / 1E9:.2f}."
+                f"Requested memory to use {max_memory_to_use / 1E9:.2f}GB is bigger than 95% of "
+                f"the system's available memory {max_memory / 1E9:.2f}GB."
             )
             if force_memory:
                 warnings.warn(message)
@@ -51,9 +51,10 @@ def get_chunk_size_per_thread(n_items, top_k, max_memory_to_use=None, force_memo
         else:
             memory_to_use = max_memory_to_use
 
-    chunk_size = (memory_to_use / (2 * 8) - (2 * n_items * top_k + n_items)) / n_items
     n_of_threads = numba.get_num_threads()
-    chunk_size_per_thread = math.floor(chunk_size / n_of_threads)
+    numerator = memory_to_use - 8 * n_items * (2 * top_k + 1 + embedding_dim)
+    denominator = 16 * n_of_threads * (n_items + top_k)
+    chunk_size_per_thread = math.floor(numerator / denominator)
     LOGGER.debug(f"Memory available: {max_memory / 1E9:.2f} GB")
     LOGGER.debug(f"Using memory: {memory_to_use / 1E9:.2f} GB")
     LOGGER.debug(f"Number of threads: {n_of_threads}")
@@ -88,12 +89,10 @@ def chunked_dot(matrix_left, matrix_right, top_k, chunk_size):
     n_rows = len(matrix_left)
     abs_top_k = abs(top_k)
     n_non_zero = n_rows * abs_top_k
-    all_values, all_indices, all_indptr = (
+    all_values, all_indices = (
         np.zeros(n_non_zero, dtype="float64"),
         np.empty(n_non_zero, dtype="int64"),
-        np.empty(n_rows + 1, dtype="int64"),
     )
-    all_indptr[0] = 0
     # Round up since the last's iteration chunk <= chunk_size
     for i in prange(0, math.ceil(n_rows / chunk_size)):  # pylint: disable=not-an-iterable
         start_row_i, end_row_i = i * chunk_size, (i + 1) * chunk_size
@@ -144,14 +143,15 @@ def cosine_similarity_top_k(
         l2_norms = np.sqrt(np.einsum("ij,ij->i", embedings, embedings))
         embedings = embedings / l2_norms[:, np.newaxis]
 
-    n_rows = embedings.shape[0]
-    if top_k is None or top_k == n_rows:
+    abs_top_k = abs(top_k)
+    n_rows, embedding_dim = embedings.shape
+    if top_k is None or abs_top_k == n_rows:
         result = csr_matrix(np.dot(embedings, embedings.T))
-    elif top_k > n_rows:
+    elif abs_top_k > n_rows:
         raise ValueError("Requested more similar items than available items.")
     else:
         chunk_size_per_thread = get_chunk_size_per_thread(
-            n_rows, top_k, max_memory_to_use, force_memory
+            n_rows, abs_top_k, embedding_dim, max_memory_to_use, force_memory
         )
         values, indices, indptr = chunked_dot(embedings, embedings.T, top_k, chunk_size_per_thread)
         result = csr_matrix((values.astype(float_type), indices, indptr), shape=(n_rows, n_rows))

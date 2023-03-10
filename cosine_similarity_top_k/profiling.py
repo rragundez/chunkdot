@@ -8,12 +8,12 @@ def get_memory(
     cosine_sim_function,
     *,
     n_items: int,
-    embedding_size: int,
+    embedding_dim: int,
     float_type="float64",
     function_kwargs=None,
 ):
     """Get the memory used by the cosine_sim_function."""
-    embeddings = np.random.randn(int(n_items), int(embedding_size)).astype(float_type)
+    embeddings = np.random.randn(int(n_items), int(embedding_dim)).astype(float_type)
     tracemalloc.clear_traces()
     tracemalloc.start()
     if function_kwargs is not None:
@@ -33,13 +33,13 @@ def get_time(
     cosine_sim_function,
     *,
     n_items,
-    embedding_size,
+    embedding_dim,
     float_type="float64",
     n_iterations=10,
     function_kwargs=None,
 ):
     """Get the execution time of the cosine_sim_function."""
-    embeddings = np.random.randn(n_items, embedding_size).astype(float_type)
+    embeddings = np.random.randn(n_items, embedding_dim).astype(float_type)
 
     def _similarity():
         if function_kwargs is not None:
