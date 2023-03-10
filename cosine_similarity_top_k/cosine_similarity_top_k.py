@@ -82,7 +82,7 @@ def _to_sparse(matrix, top_k):
     return values, indices
 
 
-@njit(parallel=False)
+@njit(parallel=True)
 def chunked_dot(matrix_left, matrix_right, top_k, chunk_size):
     """Parallelize the matrix multiplication by converting x into chunks."""
     n_rows = len(matrix_left)
@@ -95,7 +95,7 @@ def chunked_dot(matrix_left, matrix_right, top_k, chunk_size):
     )
     all_indptr[0] = 0
     # Round up since the last's iteration chunk <= chunk_size
-    for i in range(0, math.ceil(n_rows / chunk_size)):  # pylint: disable=not-an-iterable
+    for i in prange(0, math.ceil(n_rows / chunk_size)):  # pylint: disable=not-an-iterable
         start_row_i, end_row_i = i * chunk_size, (i + 1) * chunk_size
         chunk_m = np.dot(matrix_left[start_row_i:end_row_i], matrix_right)
         values, indices = _to_sparse(chunk_m, top_k)
