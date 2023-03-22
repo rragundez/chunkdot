@@ -1,13 +1,13 @@
 [tool.poetry]
-name = "cosine-similarity-top-k"
-version = "0.1.0"
-description = ""
-authors = ["Rodrigo Agundez <rodrigo.agundez@adidas.com>"]
+name = "chunkdot"
+version = "0.0.0"
+description = "Multi-threaded matrix multiplication and cosine similarity calculations."
+authors = ["Rodrigo Agundez <rragundez@gmail.com>"]
 readme = "README.md"
-packages = [{include = "cosine_similarity_top_k"}]
+homepage = ""
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.12"
+python = ">=3.8,<3.12"
 numba = "^0.56.4"
 numpy = "^1.23"
 scipy = "^1.10.1"
@@ -20,6 +20,7 @@ black = "^23.1.0"
 pylint = "^2.16.4"
 pandas = "^1.5.3"
 pytest = "^7.2.2"
+toml = "^0.10.2"
 
 [build-system]
 requires = ["poetry-core"]
