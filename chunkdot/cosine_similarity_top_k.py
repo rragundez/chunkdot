@@ -1,13 +1,14 @@
 import numpy as np
 from chunkdot.chunkdot import chunkdot
 from chunkdot.utils import get_chunk_size_per_thread
+from scipy.sparse import issparse
 
 
 def cosine_similarity_top_k(
     embeddings,
     top_k,
     normalize=True,
-    max_memory_to_use=None,
+    max_memory=None,
     force_memory=False,
 ):
     """Calculate cosine similarity and only keep the K most similar items for each item.
@@ -17,13 +18,13 @@ def cosine_similarity_top_k(
         top_k (int): The amount of similar items per item to return.
         normalize (bool): If to apply L2-norm to each row.
             Default True.
-        max_memory_to_use (int): Maximum amount of memory to use in bytes. If None it will use the
+        max_memory (int): Maximum amount of memory to use in bytes. If None it will use the
             available memory to the system according to chunkdot.utils.get_memory_available.
             Default None.
-        force_memory (bool): If to use max_memory_to_use even if it is bigger than the memory
+        force_memory (bool): Use max_memory even if it is bigger than the memory
             available. This can be desired if the cosine similarity calculation is used many times
             within the same Python process, such that objects are garbage collected but memory is
-            not marked as available to the OS. In this case is advised to set max_memory_to_use
+            not marked as available to the OS. In this case is advised to set max_memory
             to chunkdot.utils.get_memory_available at the start of your Python process.
             Default False.
 
@@ -44,6 +45,9 @@ def cosine_similarity_top_k(
             c. Collect such values and column indices into outer scope arrays.
         5. Create a CSR matrix from all values and indices and return it.
     """
+    if issparse(embeddings):
+        raise TypeError("ChunkDot does not yet support SciPy sparse matrices.")
+
     # return type consistent with sklearn.pairwise.cosine_similarity function
     return_type = "float32" if embeddings.dtype == np.float32 else "float64"
     if normalize:
@@ -64,7 +68,7 @@ def cosine_similarity_top_k(
         )
 
     chunk_size_per_thread = get_chunk_size_per_thread(
-        n_rows, abs_top_k, embedding_dim, max_memory_to_use, force_memory
+        n_rows, abs_top_k, embedding_dim, max_memory, force_memory
     )
     similarities = chunkdot(embeddings, embeddings.T, top_k, chunk_size_per_thread, return_type)
     return similarities

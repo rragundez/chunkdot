@@ -1,7 +1,7 @@
 import math
 import numpy as np
 from numba import njit, prange
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix, issparse
 from chunkdot import numba_argpartition  # pylint: disable=unused-import
 
 
@@ -64,6 +64,9 @@ def chunkdot(matrix_left, matrix_right, top_k, chunk_size, return_type="float64"
     Returns:
         scipy.sparse.csr_matrix: The result of the matrix multiplication as a CSR sparse matrix.
     """
+    if issparse(matrix_left) or issparse(matrix_right):
+        raise TypeError("ChunkDot does not yet support SciPy sparse matrices.")
+
     n_rows, n_cols = matrix_left.shape[0], matrix_right.shape[1]
     values, indices, indptr = _chunkdot(matrix_left, matrix_right, top_k, chunk_size)
     return csr_matrix((values.astype(return_type), indices, indptr), shape=(n_rows, n_cols))

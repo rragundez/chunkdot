@@ -20,31 +20,35 @@ def get_top_k(matrix, top_k):
 @pytest.mark.parametrize("n_items, top_k", [(5000, 66), (10000, 100)])
 def test_cosine_similarity_top_k_big(n_items, top_k):
     embedding_dim = 50
-    max_memory_to_use = int(0.1e9)  # force chunking by taking small amount of memory ~100MB
+    max_memory = int(0.1e9)  # force chunking by taking small amount of memory ~100MB
     embeddings = np.random.randn(n_items, embedding_dim)
     expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
-    calculated = cosine_similarity_top_k(embeddings, top_k, max_memory_to_use)
+    calculated = cosine_similarity_top_k(embeddings, top_k, max_memory)
     np.testing.assert_array_almost_equal(calculated.toarray(), expected.toarray())
 
 
 @pytest.mark.parametrize("n_items, top_k", [(5000, -66), (10000, -100)])
 def test_cosine_similarity_negative_top_k_big(n_items, top_k):
     embedding_dim = 50
-    max_memory_to_use = int(0.1e9)  # force chinking by taking small amount of memory ~100MB
+    max_memory = int(0.1e9)  # force chinking by taking small amount of memory ~100MB
     embeddings = np.random.randn(n_items, embedding_dim)
     expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
-    calculated = cosine_similarity_top_k(embeddings, top_k, max_memory_to_use)
+    calculated = cosine_similarity_top_k(embeddings, top_k, max_memory)
     np.testing.assert_array_almost_equal(calculated.toarray(), expected.toarray())
 
 
 @pytest.mark.parametrize("n_items", [10, 1000])
-def test_cosine_similarity_full(n_items):
+def test_cosine_similarity_error(n_items):
     embeddings = np.random.randn(n_items, 100)
 
     top_k = n_items
     with pytest.raises(ValueError):
+        cosine_similarity_top_k(embeddings, top_k)
+
+    with pytest.raises(TypeError):
+        embeddings = csr_matrix(embeddings)
         cosine_similarity_top_k(embeddings, top_k)
 
 
