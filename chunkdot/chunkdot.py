@@ -65,7 +65,7 @@ def chunkdot(matrix_left, matrix_right, top_k, chunk_size, return_type="float64"
         scipy.sparse.csr_matrix: The result of the matrix multiplication as a CSR sparse matrix.
     """
     if issparse(matrix_left) or issparse(matrix_right):
-        raise TypeError("ChunkDot does not yet support SciPy sparse matrices.")
+        raise TypeError("ChunkDot does not yet support SciPy sparse matrices as input.")
 
     n_rows, n_cols = matrix_left.shape[0], matrix_right.shape[1]
     values, indices, indptr = _chunkdot(matrix_left, matrix_right, top_k, chunk_size)

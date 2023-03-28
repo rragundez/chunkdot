@@ -5,16 +5,17 @@ from scipy.sparse import issparse
 
 
 def cosine_similarity_top_k(
-    embeddings,
-    top_k,
-    normalize=True,
-    max_memory=None,
-    force_memory=False,
+    embeddings: np.ndarray,
+    top_k: int,
+    normalize: bool = True,
+    max_memory: int = None,
+    force_memory: bool = False,
 ):
     """Calculate cosine similarity and only keep the K most similar items for each item.
 
     Args:
-        embeddings (np.array): 2D array containing the items embeddings.
+        embeddings (np.array): 2D array containing the items embeddings. Array of size
+            number of items x embedding dimension.
         top_k (int): The amount of similar items per item to return.
         normalize (bool): If to apply L2-norm to each row.
             Default True.
@@ -46,7 +47,7 @@ def cosine_similarity_top_k(
         5. Create a CSR matrix from all values and indices and return it.
     """
     if issparse(embeddings):
-        raise TypeError("ChunkDot does not yet support SciPy sparse matrices.")
+        raise TypeError("ChunkDot does not yet support SciPy sparse matrices as input.")
 
     # return type consistent with sklearn.pairwise.cosine_similarity function
     return_type = "float32" if embeddings.dtype == np.float32 else "float64"
