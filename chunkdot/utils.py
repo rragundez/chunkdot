@@ -33,30 +33,29 @@ def warm_up_chunked_dot():
     chunkdot(matrix, matrix.T, 10, 5000)
 
 
-def get_chunk_size_per_thread(n_items, top_k, embedding_dim, max_memory=None, force_memory=False):
+def get_chunk_size_per_thread(n_items, top_k, max_memory=None, force_memory=False):
     """Calculate the maximum row size of a matrix for a given memory threshold.
 
     This calculation is very specific to the cosine_similarity_top_k algorithm. Given the total
-    number of items, the amount of similar items requested, the embedding dimensions of each item,
-    the number of parallel threads to execute and the memory threshold to consume, calculate the
-    maximum number of rows to process on each thread.
+    number of items, the amount of similar items requested, the number of parallel threads to
+    execute and the memory threshold to consume, calculate the maximum number of rows to process
+    on each thread.
 
     The memory consumed by the cosine_similarity_top_k algorithm is:
 
-    Memory in bytes =  (2 * chunk_size * n_items * n_threads +
-                        2 * n_items * top_k +
-                        n_items +
-                        n_items * embeddings_dim) * 8 bytes
+    Memory = (
+        chunk_size x n_items x n_threads
+        + chunk_size x n_items x n_threads
+        + n_items x top_k
+        + n_items x top_k
+        + n_items
+    ) x 8 bytes
 
-    The last part of the sum only applies if the rows of the input matrix need to be normalized,
-    as the algorithm does not calculate inplace the matrix with the normalized rows but creates a
-    new matrix.
     This function returns the solution for chunk_size in the above equation.
 
     Args:
         n_items (int): The total number of items used to perform the similarity pairwise operation.
         top_k (int): The amount of similar items per item to return.
-        embedding_dim (int): The embedding dimension of each item.
         max_memory (int): Maximum amount of memory to use in bytes.
         force_memory (bool): Use max_memory even if it is bigger than the memory
             available. This can be desired if the cosine similarity calculation is used many times
@@ -79,7 +78,7 @@ def get_chunk_size_per_thread(n_items, top_k, embedding_dim, max_memory=None, fo
     if max_memory:
         if max_memory > memory_available:
             message = (
-                f"Requested memory to use {max_memory / 1E9:.2f}GB is bigger than 95% of "
+                f"Requested memory to use {max_memory / 1E9:.2f}GB is bigger than "
                 f"the system's available memory {memory_available / 1E9:.2f}GB."
             )
             if force_memory:
@@ -90,13 +89,12 @@ def get_chunk_size_per_thread(n_items, top_k, embedding_dim, max_memory=None, fo
         else:
             memory_to_use = max_memory
 
-    # M = 2 * T * C * N + 2 * N * K + N + NE
     n_threads = numba.get_num_threads()
-    numerator = memory_to_use - 8 * n_items * (2 * top_k + 1 + embedding_dim)
+    numerator = memory_to_use - 8 * n_items * (2 * top_k + 1)
     denominator = 16 * n_threads * n_items
-    chunk_size_per_thread = math.floor(numerator / denominator)
+    chunk_size = math.floor(numerator / denominator)
     LOGGER.debug(f"Memory available: {memory_available / 1E9:.2f} GB")
     LOGGER.debug(f"Maximum memory to use: {memory_to_use / 1E9:.2f} GB")
     LOGGER.debug(f"Number of threads: {n_threads}")
-    LOGGER.debug(f"Chunk size per thread: {chunk_size_per_thread}")
-    return chunk_size_per_thread
+    LOGGER.debug(f"Chunk size per thread: {chunk_size}")
+    return chunk_size

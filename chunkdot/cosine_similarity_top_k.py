@@ -64,12 +64,10 @@ def cosine_similarity_top_k(
 
     if abs_top_k >= n_rows:
         raise ValueError(
-            f"The number of requested similar items (top_k={top_k}) must be less than the "
+            f"The number of requested similar items (top_k={abs_top_k}) must be less than the "
             f"total number of items (len(embeddings)={len(embeddings)})"
         )
 
-    chunk_size_per_thread = get_chunk_size_per_thread(
-        n_rows, abs_top_k, embedding_dim, max_memory, force_memory
-    )
+    chunk_size_per_thread = get_chunk_size_per_thread(n_rows, abs_top_k, max_memory, force_memory)
     similarities = chunkdot(embeddings, embeddings.T, top_k, chunk_size_per_thread, return_type)
     return similarities
