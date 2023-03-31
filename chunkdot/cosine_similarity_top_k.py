@@ -1,7 +1,7 @@
 import numpy as np
+from scipy.sparse import issparse
 from chunkdot.chunkdot import chunkdot
 from chunkdot.utils import get_chunk_size_per_thread
-from scipy.sparse import issparse
 
 
 def cosine_similarity_top_k(
@@ -59,7 +59,7 @@ def cosine_similarity_top_k(
             ]
         )
 
-    n_rows, embedding_dim = embeddings.shape
+    n_rows = len(embeddings)
     abs_top_k = abs(top_k)
 
     if abs_top_k >= n_rows:
