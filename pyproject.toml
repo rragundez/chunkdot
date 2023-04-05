@@ -11,7 +11,6 @@ python = ">=3.8,<3.12"
 numba = "^0.56.4"
 numpy = "^1.23"
 scipy = "^1.10.1"
-llvmlite = { version = "^0.39", python = ">3.10" }
 
 [tool.poetry.group.dev.dependencies]
 jupyter = "^1.0.0"
