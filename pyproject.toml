@@ -4,7 +4,13 @@ version = "0.1.4"
 description = "Multi-threaded matrix multiplication and cosine similarity calculations."
 authors = ["Rodrigo Agundez <rragundez@gmail.com>"]
 readme = "README.md"
-homepage = ""
+repository = "https://github.com/rragundez/chunkdot"
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development",
+    "Topic :: Scientific/Engineering"
+]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.12"
