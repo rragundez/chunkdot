@@ -1,6 +1,7 @@
 import numpy as np
-from scipy.sparse import issparse
+from scipy import sparse
 from chunkdot.chunkdot import chunkdot
+from chunkdot.chunkdot_sparse import chunkdot_sparse
 from chunkdot.utils import get_chunk_size_per_thread
 
 
@@ -46,28 +47,35 @@ def cosine_similarity_top_k(
             c. Collect such values and column indices into outer scope arrays.
         5. Create a CSR matrix from all values and indices and return it.
     """
-    if issparse(embeddings):
-        raise TypeError("ChunkDot does not yet support SciPy sparse matrices as input.")
-
     # return type consistent with sklearn.pairwise.cosine_similarity function
     return_type = "float32" if embeddings.dtype == np.float32 else "float64"
     if normalize:
-        norms = np.sqrt(np.einsum("ij,ij->i", embeddings, embeddings, dtype=return_type))[
-            :, np.newaxis
-        ]
-        embeddings = np.divide(
-            embeddings, norms, out=np.zeros_like(embeddings, dtype=return_type), where=norms != 0
-        )
+        if sparse.issparse(embeddings):
+            norm = sparse.linalg.norm(embeddings, ord=2, axis=1)
+            embeddings = sparse.diags(1 / norm) @ embeddings
+        else:
+            norms = np.linalg.norm(embeddings, ord=2, axis=1, keepdims=True)
+            embeddings = np.divide(
+                embeddings,
+                norms,
+                out=np.zeros_like(embeddings, dtype=return_type),
+                where=norms != 0,
+            )
 
-    n_rows = len(embeddings)
+    n_rows = embeddings.shape[0]
     abs_top_k = abs(top_k)
 
     if abs_top_k >= n_rows:
         raise ValueError(
             f"The number of requested similar items (top_k={abs_top_k}) must be less than the "
-            f"total number of items (len(embeddings)={len(embeddings)})"
+            f"total number of items (embeddings.shape[0]={n_rows})"
         )
 
     chunk_size_per_thread = get_chunk_size_per_thread(n_rows, abs_top_k, max_memory, force_memory)
-    similarities = chunkdot(embeddings, embeddings.T, top_k, chunk_size_per_thread, return_type)
+    if sparse.issparse(embeddings):
+        similarities = chunkdot_sparse(
+            embeddings, embeddings, top_k, chunk_size_per_thread, return_type, transpose_right=True
+        )
+    else:
+        similarities = chunkdot(embeddings, embeddings.T, top_k, chunk_size_per_thread, return_type)
     return similarities
