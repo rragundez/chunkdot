@@ -137,3 +137,12 @@ def test_cosine_similarity_negative_top_k_manual(input_type):
     calculated = cosine_similarity_top_k(embeddings, top_k)
     assert calculated.dtype == expected.dtype
     np.testing.assert_array_almost_equal(calculated.toarray(), expected)
+
+
+@pytest.mark.parametrize("top_k", [1, 2, 3])
+def test_cosine_similarity_negative_top_k_zero_rows(top_k):
+    embeddings = np.array([[0, 0, 0], [34, 22, 11], [0, 0, 0], [11, 21, 34]])
+    expected = cosine_similarity(embeddings)
+    expected = get_top_k(expected, top_k)
+    calculated = cosine_similarity_top_k(embeddings, top_k)
+    np.testing.assert_array_almost_equal(calculated.toarray(), expected.toarray())

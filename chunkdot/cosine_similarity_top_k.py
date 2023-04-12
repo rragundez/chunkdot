@@ -52,11 +52,11 @@ def cosine_similarity_top_k(
     # return type consistent with sklearn.pairwise.cosine_similarity function
     return_type = "float32" if embeddings.dtype == np.float32 else "float64"
     if normalize:
-        embeddings = (
-            embeddings
-            / np.sqrt(np.einsum("ij,ij->i", embeddings, embeddings, dtype=return_type))[
-                :, np.newaxis
-            ]
+        norms = np.sqrt(np.einsum("ij,ij->i", embeddings, embeddings, dtype=return_type))[
+            :, np.newaxis
+        ]
+        embeddings = np.divide(
+            embeddings, norms, out=np.zeros_like(embeddings, dtype=return_type), where=norms != 0
         )
 
     n_rows = len(embeddings)
