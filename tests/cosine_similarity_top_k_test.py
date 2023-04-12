@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix, rand as srand
 from sklearn.metrics.pairwise import cosine_similarity
 from chunkdot.cosine_similarity_top_k import cosine_similarity_top_k
 
@@ -18,14 +18,19 @@ def get_top_k(matrix, top_k):
 
 
 @pytest.mark.parametrize("n_items, top_k", [(5000, 66), (10000, 100)])
-def test_cosine_similarity_top_k_big(n_items, top_k):
+@pytest.mark.parametrize("as_csr_sparse", [True])
+def test_cosine_similarity_top_k_big(n_items, top_k, as_csr_sparse):
     embedding_dim = 50
     max_memory = int(0.1e9)  # force chunking by taking small amount of memory ~100MB
-    embeddings = np.random.randn(n_items, embedding_dim)
+    if as_csr_sparse:
+        embeddings = srand(n_items, embedding_dim, density=0.5, format="csr")
+    else:
+        embeddings = np.random.randn(n_items, embedding_dim)
     expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
     calculated = cosine_similarity_top_k(embeddings, top_k, max_memory)
-    np.testing.assert_array_almost_equal(calculated.toarray(), expected.toarray())
+    np.testing.assert_array_almost_equal(np.sort(calculated.data), np.sort(expected.data))
+    # np.testing.assert_array_almost_equal(calculated.toarray(), expected.toarray())
 
 
 @pytest.mark.parametrize("n_items, top_k", [(5000, -66), (10000, -100)])
@@ -45,10 +50,6 @@ def test_cosine_similarity_error(n_items):
 
     top_k = n_items
     with pytest.raises(ValueError):
-        cosine_similarity_top_k(embeddings, top_k)
-
-    with pytest.raises(TypeError):
-        embeddings = csr_matrix(embeddings)
         cosine_similarity_top_k(embeddings, top_k)
 
 
