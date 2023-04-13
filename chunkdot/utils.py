@@ -47,12 +47,6 @@ def get_memory_available():
     return psutil.virtual_memory().available
 
 
-def warm_up_chunked_dot():
-    """Make a dummy run of the "chunkdot" function to compile it."""
-    matrix = np.random.randn(10000, 100)
-    chunkdot(matrix, matrix.T, 10, 5000)
-
-
 def get_chunk_size_per_thread(n_items, top_k, max_memory=None, force_memory=False):
     """Calculate the maximum row size of a matrix for a given memory threshold.
 

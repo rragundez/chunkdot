@@ -5,6 +5,12 @@ from scipy.sparse import csr_matrix
 from chunkdot.utils import to_sparse
 
 
+def warm_up_chunkdot():
+    """Make a dummy run of the "chunkdot" function to compile it."""
+    matrix = np.random.randn(10000, 100)
+    chunkdot(matrix, matrix.T, 10, 5000)
+
+
 @njit(parallel=True)
 def _chunkdot(matrix_left, matrix_right, top_k, chunk_size):
     """Parallelize matrix multiplication by converting the left matrix into chunks."""

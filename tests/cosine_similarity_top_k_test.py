@@ -32,10 +32,13 @@ def test_cosine_similarity_top_k_big(n_items, top_k):
 
 @pytest.mark.parametrize("n_items, top_k", [(5000, 66), (10000, 100)])
 @pytest.mark.parametrize("density", [0.25, 0.1, 0.01])
-def test_cosine_similarity_top_k_big_sparse(n_items, top_k, density):
+@pytest.mark.parametrize("sparse_format", ["csr", "csc", "coo"])
+def test_cosine_similarity_top_k_big_sparse(n_items, top_k, density, sparse_format):
     embedding_dim = 50
     max_memory = int(10e6)  # force chunking by taking small amount of memory ~10MB
-    embeddings = srand(n_items, embedding_dim, density=density, format="csr", random_state=21)
+    embeddings = srand(
+        n_items, embedding_dim, density=density, format=sparse_format, random_state=21
+    )
     expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
     calculated = cosine_similarity_top_k(embeddings, top_k, max_memory)
@@ -61,10 +64,13 @@ def test_cosine_similarity_negative_top_k_big(n_items, top_k):
 
 @pytest.mark.parametrize("n_items, top_k", [(5000, -66), (10000, -100)])
 @pytest.mark.parametrize("density", [0.25, 0.1, 0.01])
-def test_cosine_similarity_negative_top_k_big_sparse(n_items, top_k, density):
+@pytest.mark.parametrize("sparse_format", ["csr", "csc", "coo"])
+def test_cosine_similarity_negative_top_k_big_sparse(n_items, top_k, density, sparse_format):
     embedding_dim = 50
     max_memory = int(10e6)  # force chunking by taking small amount of memory ~10MB
-    embeddings = srand(n_items, embedding_dim, density=density, format="csr", random_state=21)
+    embeddings = srand(
+        n_items, embedding_dim, density=density, format=sparse_format, random_state=21
+    )
     expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
     calculated = cosine_similarity_top_k(embeddings, top_k, max_memory)
