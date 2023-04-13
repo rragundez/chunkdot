@@ -18,20 +18,20 @@ def sparse_dot_rowwise(
 ):
     left_n_rows = len(matrix_left_indptr) - 1
     right_n_rows = len(matrix_right_indptr) - 1
-    similarities = np.zeros((left_n_rows, right_n_rows))
-    for row_left in range(len(matrix_left_indptr) - 1):
-        for row_right in range(len(matrix_right_indptr) - 1):
+    similarities = np.empty((left_n_rows, right_n_rows))
+    for row_left in range(left_n_rows):  # loop over rows of left matrix
+        for row_right in range(right_n_rows):  # loop over rows of right matrix
             value = 0
+            # loop over indices that belong to each row for the left matrix
             for left_i in range(matrix_left_indptr[row_left], matrix_left_indptr[row_left + 1]):
-                column_left_i = matrix_left_indices[left_i]
+                # loop over indices that belong to each row for the right matrix
                 for right_i in range(
                     matrix_right_indptr[row_right], matrix_right_indptr[row_right + 1]
                 ):
-                    column_right_i = matrix_right_indices[right_i]
-                    if column_left_i == column_right_i:
-                        value += matrix_left_data[left_i] * matrix_left_data[right_i]
-            if value != 0:
-                similarities[row_left, row_right] = value
+                    if matrix_left_indices[left_i] == matrix_right_indices[right_i]:
+                        # both rows have a non-zero value at this column index
+                        value += matrix_left_data[left_i] * matrix_right_data[right_i]
+            similarities[row_left, row_right] = value
     return similarities
 
 
@@ -40,8 +40,13 @@ def sparse_dot_rowwise(
 @njit(parallel=False)
 def slice_csr_sparse(data, indices, indptr, start_row, end_row):
     left_i = indptr[start_row]
+    end_row = min(end_row, len(indptr) - 1)
     right_i = indptr[end_row]
-    return data[left_i:right_i], indices[left_i:right_i], indptr[start_row : end_row + 1]
+    return (
+        data[left_i:right_i],
+        indices[left_i:right_i],
+        indptr[start_row : end_row + 1] - indptr[start_row],
+    )
 
 
 @njit(parallel=True)
@@ -88,9 +93,7 @@ def _chunkdot_sparse_rowwise(
     return all_values, all_indices, all_indptr
 
 
-def chunkdot_sparse(
-    matrix_left, matrix_right, top_k, chunk_size, return_type="float64", transpose_right=False
-):
+def chunkdot_sparse(matrix_left, matrix_right, top_k, chunk_size, return_type="float64"):
     """Parallelize matrix multiplication by converting the left matrix into chunks.
 
     Args:
@@ -105,8 +108,9 @@ def chunkdot_sparse(
         scipy.sparse.csr_matrix: The result of the matrix multiplication as a CSR sparse matrix.
     """
     n_rows = matrix_left.shape[0]
-    if not transpose_right:
-        matrix_right = matrix_right.T
+    matrix_right = matrix_right.T
+    if matrix_left.shape[1] != matrix_right.shape[1]:
+        raise ValueError("Incorrect matrix dimensions")
     n_cols = matrix_right.shape[0]
     values, indices, indptr = _chunkdot_sparse_rowwise(
         matrix_left.data,

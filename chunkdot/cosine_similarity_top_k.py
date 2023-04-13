@@ -49,10 +49,12 @@ def cosine_similarity_top_k(
     """
     # return type consistent with sklearn.pairwise.cosine_similarity function
     return_type = "float32" if embeddings.dtype == np.float32 else "float64"
+    embeddings = embeddings.astype(return_type)
     if normalize:
         if sparse.issparse(embeddings):
-            norm = sparse.linalg.norm(embeddings, ord=2, axis=1)
-            embeddings = sparse.diags(1 / norm) @ embeddings
+            norms = sparse.linalg.norm(embeddings, ord=2, axis=1)
+            norms[norms == 0] = np.inf
+            embeddings = sparse.diags(1 / norms) @ embeddings
         else:
             norms = np.linalg.norm(embeddings, ord=2, axis=1, keepdims=True)
             embeddings = np.divide(
@@ -74,7 +76,7 @@ def cosine_similarity_top_k(
     chunk_size_per_thread = get_chunk_size_per_thread(n_rows, abs_top_k, max_memory, force_memory)
     if sparse.issparse(embeddings):
         similarities = chunkdot_sparse(
-            embeddings, embeddings, top_k, chunk_size_per_thread, return_type, transpose_right=True
+            embeddings, embeddings.T, top_k, chunk_size_per_thread, return_type
         )
     else:
         similarities = chunkdot(embeddings, embeddings.T, top_k, chunk_size_per_thread, return_type)
