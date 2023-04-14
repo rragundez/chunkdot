@@ -18,7 +18,7 @@ def warm_up_chunkdot_sparse():
 # Noting to parallelize in this function. It will raise an error if setting parallel to True since
 # the calling functions are already being parallelized.
 @njit(parallel=False)
-def sparse_dot_rowwise(
+def sparse_dot(
     matrix_left_data,
     matrix_left_indices,
     matrix_left_indptr,
@@ -113,7 +113,7 @@ def _chunkdot_sparse_rowwise(
         data, indices, indptr = slice_csr_sparse(
             matrix_left_data, matrix_left_indices, matrix_left_indptr, start_row_i, end_row_i
         )
-        chunk_m = sparse_dot_rowwise(
+        chunk_m = sparse_dot(
             data,
             indices,
             indptr,
