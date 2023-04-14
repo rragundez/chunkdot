@@ -22,19 +22,18 @@ def sparse_dot_rowwise(
     matrix_left_data,
     matrix_left_indices,
     matrix_left_indptr,
+    left_n_rows,
     matrix_right_data,
     matrix_right_indices,
     matrix_right_indptr,
+    right_n_cols,
 ):
-    """Sparse matrix multiplication matrix_left x matrix_right.T
+    """Sparse matrix multiplication matrix_left x matrix_right
 
+    Both matrices must be in the CSR sparse format.
     Data, indices and indptr are the standard CSR representation where the column indices for row i
     are stored in indices[indptr[i]:indptr[i+1]] and their corresponding values are stored in
     data[indptr[i]:indptr[i+1]].
-
-    Note that the matrix_right would need still to be transposed according to the mathematical
-    expression of matrix multiplication. In this algorithm we do not transpose it as the iteration
-    is over the rows of each matrix.
 
     Args:
         matrix_left_data (numpy.array): Non-zero value of the sparse matrix.
@@ -47,22 +46,15 @@ def sparse_dot_rowwise(
     Returns:
         numpy.array: 2D array with the result of the matrix multiplication.
     """
-    left_n_rows = len(matrix_left_indptr) - 1
-    right_n_rows = len(matrix_right_indptr) - 1
-    values = np.empty((left_n_rows, right_n_rows))
-    for row_left in range(left_n_rows):  # loop over rows of left matrix
-        for row_right in range(right_n_rows):  # loop over rows of right matrix
-            value = 0
-            # loop over indices that belong to each row for the left matrix
-            for left_i in range(matrix_left_indptr[row_left], matrix_left_indptr[row_left + 1]):
-                # loop over indices that belong to each row for the right matrix
-                for right_i in range(
-                    matrix_right_indptr[row_right], matrix_right_indptr[row_right + 1]
-                ):
-                    if matrix_left_indices[left_i] == matrix_right_indices[right_i]:
-                        # both rows have a non-zero value at this column index
-                        value += matrix_left_data[left_i] * matrix_right_data[right_i]
-            values[row_left, row_right] = value
+    values = np.zeros((left_n_rows, right_n_cols))
+    for row_left in range(left_n_rows):
+        for left_i in range(matrix_left_indptr[row_left], matrix_left_indptr[row_left + 1]):
+            col_left = matrix_left_indices[left_i]
+            value_left = matrix_left_data[left_i]
+            for right_i in range(matrix_right_indptr[col_left], matrix_right_indptr[col_left + 1]):
+                col_right = matrix_right_indices[right_i]
+                value_right = matrix_right_data[right_i]
+                values[row_left, col_right] += value_left * value_right
     return values
 
 
@@ -70,7 +62,7 @@ def sparse_dot_rowwise(
 # the calling functions are already being parallelized.
 @njit(parallel=False)
 def slice_csr_sparse(data, indices, indptr, start_row, end_row):
-    """Get row-wise slice of sparse matrix.
+    """Get row-wise slice of a sparse matrix.
 
     Data, indices and indptr are the standard CSR representation where the column indices for row i
     are stored in indices[indptr[i]:indptr[i+1]] and their corresponding values are stored in
@@ -99,28 +91,24 @@ def _chunkdot_sparse_rowwise(
     matrix_left_data,
     matrix_left_indices,
     matrix_left_indptr,
+    left_n_rows,
     matrix_right_data,
     matrix_right_indices,
     matrix_right_indptr,
+    right_n_cols,
     top_k,
     chunk_size,
 ):
-    """Parallelize the sparse matrix multiplication by converting the left matrix into chunks.
-
-    Note that the matrix_right would still need to be transposed according to the mathematical
-    expression of matrix multiplication. In this algorithm we do not transpose it as the iteration
-    is over the rows of each matrix.
-    """
-    # pylint: disable=too-many-locals, duplicate-code
-    n_rows = len(matrix_left_indptr) - 1
+    """Parallelize the sparse matrix multiplication by converting the left matrix into chunks."""
+    # pylint: disable=duplicate-code
     abs_top_k = abs(top_k)
-    n_non_zero = n_rows * abs_top_k
+    n_non_zero = left_n_rows * abs_top_k
     all_values, all_indices = (
         np.zeros(n_non_zero, dtype="float64"),
         np.empty(n_non_zero, dtype="int64"),
     )
     # Round up since the in the last iteration chunk <= chunk_size
-    for i in prange(0, math.ceil(n_rows / chunk_size)):  # pylint: disable=not-an-iterable
+    for i in prange(0, math.ceil(left_n_rows / chunk_size)):  # pylint: disable=not-an-iterable
         start_row_i, end_row_i = i * chunk_size, (i + 1) * chunk_size
         data, indices, indptr = slice_csr_sparse(
             matrix_left_data, matrix_left_indices, matrix_left_indptr, start_row_i, end_row_i
@@ -129,9 +117,11 @@ def _chunkdot_sparse_rowwise(
             data,
             indices,
             indptr,
+            len(indptr) - 1,
             matrix_right_data,
             matrix_right_indices,
             matrix_right_indptr,
+            right_n_cols,
         )
         to_sparse(
             chunk_m,
@@ -140,7 +130,7 @@ def _chunkdot_sparse_rowwise(
             all_indices[start_row_i * abs_top_k : end_row_i * abs_top_k],
         )
     # standard CSR form representation
-    all_indptr = np.arange(0, abs_top_k * (1 + n_rows), abs_top_k)
+    all_indptr = np.arange(0, abs_top_k * (1 + left_n_rows), abs_top_k)
     return all_values, all_indices, all_indptr
 
 
@@ -160,35 +150,36 @@ def chunkdot_sparse(matrix_left, matrix_right, top_k, chunk_size, return_type="f
     Returns:
         scipy.sparse.csr_matrix: The result of the matrix multiplication as a CSR sparse matrix.
     """
+    left_n_rows = matrix_left.shape[0]
+    right_n_cols = matrix_right.shape[1]
     if matrix_left.shape[1] != matrix_right.shape[0]:
         raise ValueError(
             "Incorrect matrix dimensions for matrix multiplication. Left matrix has shape="
             f"({matrix_left.shape}) and right matrix has shape={matrix_right.shape}"
         )
-
-    n_rows = matrix_left.shape[0]
-    matrix_right = matrix_right.T
-
     # Algorithm is made for CSR sparse matrices only
     left_format = matrix_left.getformat()
     if left_format != "csr":
         LOGGER.debug(f"Converting left matrix format from {left_format.upper()} to CSR.")
         matrix_left = matrix_left.tocsr()
 
-    right_format = matrix_left.getformat()
+    right_format = matrix_right.getformat()
     if right_format != "csr":
         LOGGER.debug(f"Converting right matrix format from {right_format.upper()} to CSR.")
         matrix_right = matrix_right.tocsr()
 
-    n_cols = matrix_right.shape[0]
     values, indices, indptr = _chunkdot_sparse_rowwise(
         matrix_left.data,
         matrix_left.indices,
         matrix_left.indptr,
+        left_n_rows,
         matrix_right.data,
         matrix_right.indices,
         matrix_right.indptr,
+        right_n_cols,
         top_k,
         chunk_size,
     )
-    return csr_matrix((values.astype(return_type), indices, indptr), shape=(n_rows, n_cols))
+    return csr_matrix(
+        (values.astype(return_type), indices, indptr), shape=(left_n_rows, right_n_cols)
+    )
