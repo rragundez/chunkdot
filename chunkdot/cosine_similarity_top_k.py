@@ -15,8 +15,8 @@ def cosine_similarity_top_k(
     """Calculate cosine similarity and only keep the K most similar items for each item.
 
     Args:
-        embeddings (np.array): 2D array containing the items embeddings. Array of size
-            number of items x embedding dimension.
+        embeddings (np.array or scipy.sparse matrix): 2D object containing the items embeddings,
+            of shape number of items x embedding dimension.
         top_k (int): The amount of similar items per item to return.
         normalize (bool): If to apply L2-norm to each row.
             Default True.
