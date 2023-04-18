@@ -47,4 +47,5 @@ max-args = 10
 disable = [
   "missing-module-docstring",
   "logging-fstring-interpolation",
+  "too-many-locals",
 ]
