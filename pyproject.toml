@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "chunkdot"
-version = "0.1.5"
+version = "0.2.1"
 description = "Multi-threaded matrix multiplication and cosine similarity calculations."
 authors = ["Rodrigo Agundez <rragundez@gmail.com>"]
 readme = "README.md"
@@ -48,4 +48,5 @@ max-args = 10
 disable = [
   "missing-module-docstring",
   "logging-fstring-interpolation",
+  "too-many-locals",
 ]

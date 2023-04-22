@@ -3,29 +3,16 @@ import math
 import numpy as np
 from numba import njit, prange
 from numba_progress import ProgressBar
-from scipy.sparse import csr_matrix, issparse
+from scipy.sparse import csr_matrix
 
 from chunkdot import numba_argpartition  # pylint: disable=unused-import
+from chunkdot.utils import to_sparse
 
 
-# Noting to parallelize in this function. It will raise an error if setting parallel to True since
-# the calling function "_chunkdot" is already being parallelized.
-@njit(parallel=False)
-def _to_sparse(matrix, top_k, values, indices):
-    """Get the values and column indices of the biggest K elements per row.
-
-    The function will return the data and indices according with the CSR matrix convention. The
-    indptr values are calculated outside the parallelization of this function.
-    """
-    # This line creates a new array with the same shape as "matrix" effectively doubling the
-    # memory consumption.
-    top_k_j = np.argpartition(matrix, -top_k)
-    if top_k > 0:
-        top_k_j = top_k_j[:, -top_k:]
-    else:
-        top_k_j = top_k_j[:, :-top_k]
-    values[:] = np.take_along_axis(matrix, top_k_j, axis=1).flatten()
-    indices[:] = top_k_j.flatten()
+def warm_up_chunkdot():
+    """Make a dummy run of the "chunkdot" function to compile it."""
+    matrix = np.random.randn(10000, 100)
+    chunkdot(matrix, matrix.T, 10, 5000)
 
 
 @njit(parallel=True)
@@ -44,7 +31,7 @@ def _chunkdot(matrix_left, matrix_right, top_k, chunk_size, progress_bar=None):
     for i in prange(0, num_iterations):  # pylint: disable=not-an-iterable
         start_row_i, end_row_i = i * chunk_size, (i + 1) * chunk_size
         chunk_m = np.dot(matrix_left[start_row_i:end_row_i], matrix_right)
-        _to_sparse(
+        to_sparse(
             chunk_m,
             top_k,
             all_values[start_row_i * abs_top_k : end_row_i * abs_top_k],
@@ -75,9 +62,6 @@ def chunkdot(
     Returns:
         scipy.sparse.csr_matrix: The result of the matrix multiplication as a CSR sparse matrix.
     """
-    if issparse(matrix_left) or issparse(matrix_right):
-        raise TypeError("ChunkDot does not yet support SciPy sparse matrices as input.")
-
     n_rows, n_cols = matrix_left.shape[0], matrix_right.shape[1]
 
     if show_progress:

@@ -3,12 +3,34 @@ import math
 import warnings
 
 import numba
+from numba import njit
 import numpy as np
 import psutil
 
 from chunkdot.chunkdot import chunkdot
+from chunkdot import numba_argpartition  # pylint: disable=unused-import
 
 LOGGER = logging.getLogger(__name__)
+
+
+# Noting to parallelize in this function. It will raise an error if setting parallel to True since
+# the calling functions are already being parallelized.
+@njit(parallel=False)
+def to_sparse(matrix, top_k, values, indices):
+    """Get the values and column indices of the biggest K elements per row.
+
+    The function will return the data and indices according with the CSR matrix convention. The
+    indptr values are calculated outside the parallelization of this function.
+    """
+    # This line creates a new array with the same shape as "matrix" effectively doubling the
+    # memory consumption.
+    top_k_j = np.argpartition(matrix, -top_k)
+    if top_k > 0:
+        top_k_j = top_k_j[:, -top_k:]
+    else:
+        top_k_j = top_k_j[:, :-top_k]
+    values[:] = np.take_along_axis(matrix, top_k_j, axis=1).flatten()
+    indices[:] = top_k_j.flatten()
 
 
 def get_memory_available():
@@ -26,12 +48,6 @@ def get_memory_available():
     been garbage collected.
     """
     return psutil.virtual_memory().available
-
-
-def warm_up_chunked_dot():
-    """Make a dummy run of the "chunkdot" function to compile it."""
-    matrix = np.random.randn(10000, 100)
-    chunkdot(matrix, matrix.T, 10, 5000)
 
 
 def get_chunk_size_per_thread(n_items, top_k, max_memory=None, force_memory=False):
