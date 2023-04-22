@@ -80,7 +80,6 @@ def chunkdot(
 
     n_rows, n_cols = matrix_left.shape[0], matrix_right.shape[1]
 
-    # progress bar addition
     if show_progress:
         num_iterations = math.ceil(len(matrix_left) / chunk_size)
         with ProgressBar(total=num_iterations) as progress_bar:
