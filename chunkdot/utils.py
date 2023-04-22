@@ -1,11 +1,12 @@
 import logging
 import math
 import warnings
-import psutil
+
 import numba
 import numpy as np
-from chunkdot.chunkdot import chunkdot
+import psutil
 
+from chunkdot.chunkdot import chunkdot
 
 LOGGER = logging.getLogger(__name__)
 

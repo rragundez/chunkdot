@@ -1,9 +1,9 @@
 # pylint: skip-file
 
-from numba.extending import overload, register_jitable
 import numpy as np
-from numba.np.arraymath import _asarray, valid_kths, nan_aware_less_than
 from numba import types
+from numba.extending import overload, register_jitable
+from numba.np.arraymath import _asarray, nan_aware_less_than, valid_kths
 
 
 def _partition_factory(pivotimpl, argpartition=False):

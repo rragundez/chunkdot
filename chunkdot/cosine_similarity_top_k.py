@@ -30,7 +30,7 @@ def cosine_similarity_top_k(
             not marked as available to the OS. In this case is advised to set max_memory
             to chunkdot.utils.get_memory_available at the start of your Python process.
             Default False.
-        show_progress (bool): Whether to show tqdm-like progress bar 
+        show_progress (bool): Whether to show tqdm-like progress bar
             on chunked matrix multiplications. False by default.
 
     Returns:
@@ -73,6 +73,7 @@ def cosine_similarity_top_k(
         )
 
     chunk_size_per_thread = get_chunk_size_per_thread(n_rows, abs_top_k, max_memory, force_memory)
-    similarities = chunkdot(embeddings, embeddings.T, top_k, chunk_size_per_thread, 
-                            return_type, show_progress)
+    similarities = chunkdot(
+        embeddings, embeddings.T, top_k, chunk_size_per_thread, return_type, show_progress
+    )
     return similarities

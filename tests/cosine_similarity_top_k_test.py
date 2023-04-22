@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 from scipy.sparse import csr_matrix
 from sklearn.metrics.pairwise import cosine_similarity
+
 from chunkdot.cosine_similarity_top_k import cosine_similarity_top_k
 
 
@@ -145,4 +146,15 @@ def test_cosine_similarity_negative_top_k_zero_rows(top_k):
     expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
     calculated = cosine_similarity_top_k(embeddings, top_k)
+    np.testing.assert_array_almost_equal(calculated.toarray(), expected.toarray())
+
+
+@pytest.mark.parametrize("n_items, top_k, show_progress", [(5000, -15, True), (5000, -15, False)])
+def test_cosine_similarity_with_progress_bar(n_items, top_k, show_progress):
+    embedding_dim = 50
+    max_memory = int(0.1e9)  # force chinking by taking small amount of memory ~100MB
+    embeddings = np.random.randn(n_items, embedding_dim)
+    expected = cosine_similarity(embeddings)
+    expected = get_top_k(expected, top_k)
+    calculated = cosine_similarity_top_k(embeddings, top_k, max_memory, show_progress=show_progress)
     np.testing.assert_array_almost_equal(calculated.toarray(), expected.toarray())
