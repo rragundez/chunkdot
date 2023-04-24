@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 
 from scipy import sparse
@@ -8,7 +10,7 @@ from chunkdot.utils import get_chunk_size_per_thread
 
 
 def cosine_similarity_top_k(
-    embeddings: np.ndarray,
+    embeddings: Union[np.ndarray, sparse.spmatrix],
     top_k: int,
     normalize: bool = True,
     max_memory: int = None,

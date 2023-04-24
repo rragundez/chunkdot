@@ -224,7 +224,7 @@ def test_cosine_similarity_negative_top_k_zero_rows(top_k, as_csr_sparse):
 @pytest.mark.parametrize("as_csr_sparse", [False, True])
 def test_cosine_similarity_with_progress_bar(n_items, top_k, show_progress, as_csr_sparse):
     embedding_dim = 50
-    max_memory = int(0.1e9)  # force chinking by taking small amount of memory ~100MB
+    max_memory = int(10e6)  # force chunking by taking small amount of memory ~10MB
     embeddings = np.random.randn(n_items, embedding_dim)
     if as_csr_sparse:
         embeddings = csr_matrix(embeddings)

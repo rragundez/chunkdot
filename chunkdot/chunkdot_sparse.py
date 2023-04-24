@@ -142,7 +142,7 @@ def _chunkdot_sparse_rowwise(  # pylint: disable=too-many-arguments
 
 
 def chunkdot_sparse(
-    matrix_left, matrix_right, top_k, chunk_size, return_type="float64", show_progress: bool = False
+    matrix_left, matrix_right, top_k, chunk_size, return_type="float64", show_progress=False
 ):
     """Parallelize sparse matrix multiplication by converting the left matrix into chunks.
 
@@ -181,7 +181,6 @@ def chunkdot_sparse(
 
     num_iterations = math.ceil(left_n_rows / chunk_size)
     progress_bar = ProgressBar(total=num_iterations) if show_progress else None
-
     values, indices, indptr = _chunkdot_sparse_rowwise(
         matrix_left.data,
         matrix_left.indices,
@@ -198,6 +197,7 @@ def chunkdot_sparse(
 
     if progress_bar:
         progress_bar.close()
+
     return csr_matrix(
         (values.astype(return_type), indices, indptr), shape=(left_n_rows, right_n_cols)
     )

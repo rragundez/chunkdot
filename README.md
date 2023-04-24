@@ -26,6 +26,15 @@ cosine_similarity_top_k(embeddings, top_k=-50, max_memory=20E9)
 <100000x100000 sparse matrix of type '<class 'numpy.float64'>'
  with 5000000 stored elements in Compressed Sparse Row format>
 ```
+```python
+# with progress bar
+cosine_similarity_top_k(embeddings, top_k=50, show_progress=True)
+```
+```
+100%|███████████████████████████████████████████████████████████████| 129.0/129 [01:04<00:00,  1.80it/s]
+<100000x100000 sparse matrix of type '<class 'numpy.float64'>'
+  with 5000000 stored elements in Compressed Sparse Row format>
+```
 
 Execution time
 ```python

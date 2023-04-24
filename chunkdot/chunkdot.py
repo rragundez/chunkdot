@@ -45,7 +45,7 @@ def _chunkdot(matrix_left, matrix_right, top_k, chunk_size, progress_bar=None):
 
 
 def chunkdot(
-    matrix_left, matrix_right, top_k, chunk_size, return_type="float64", show_progress: bool = False
+    matrix_left, matrix_right, top_k, chunk_size, return_type="float64", show_progress=False
 ):
     """Parallelize matrix multiplication by converting the left matrix into chunks.
 
@@ -64,14 +64,13 @@ def chunkdot(
     """
     n_rows, n_cols = matrix_left.shape[0], matrix_right.shape[1]
 
-    if show_progress:
-        num_iterations = math.ceil(len(matrix_left) / chunk_size)
-        with ProgressBar(total=num_iterations) as progress_bar:
-            values, indices, indptr = _chunkdot(
-                matrix_left, matrix_right, top_k, chunk_size, progress_bar=progress_bar
-            )
-    else:
-        values, indices, indptr = _chunkdot(
-            matrix_left, matrix_right, top_k, chunk_size, progress_bar=None
-        )
+    num_iterations = math.ceil(len(matrix_left) / chunk_size)
+    progress_bar = ProgressBar(total=num_iterations) if show_progress else None
+    values, indices, indptr = _chunkdot(
+        matrix_left, matrix_right, top_k, chunk_size, progress_bar=progress_bar
+    )
+
+    if progress_bar:
+        progress_bar.close()
+
     return csr_matrix((values.astype(return_type), indices, indptr), shape=(n_rows, n_cols))
