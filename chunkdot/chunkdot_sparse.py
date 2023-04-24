@@ -195,6 +195,10 @@ def chunkdot_sparse(
         chunk_size,
         progress_bar=progress_bar,
     )
+
+    if progress_bar:
+        progress_bar.close()
+        
     return csr_matrix(
         (values.astype(return_type), indices, indptr), shape=(left_n_rows, right_n_cols)
     )
