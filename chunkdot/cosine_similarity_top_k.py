@@ -1,6 +1,5 @@
 import numpy as np
 
-from scipy.sparse import issparse
 from scipy import sparse
 
 from chunkdot.chunkdot import chunkdot
