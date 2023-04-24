@@ -1,10 +1,12 @@
 import logging
 import math
 import warnings
-import psutil
+
 import numba
 from numba import njit
 import numpy as np
+import psutil
+
 from chunkdot import numba_argpartition  # pylint: disable=unused-import
 
 LOGGER = logging.getLogger(__name__)

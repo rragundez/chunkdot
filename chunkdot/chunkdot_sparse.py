@@ -1,10 +1,13 @@
 import logging
 import math
+
 import numpy as np
 from numba import njit, prange
-from scipy.sparse import csr_matrix, rand as srand
-from chunkdot.utils import to_sparse
+from numba_progress import ProgressBar
+from scipy.sparse import csr_matrix
+from scipy.sparse import rand as srand
 
+from chunkdot.utils import to_sparse
 
 LOGGER = logging.getLogger(__name__)
 
@@ -87,7 +90,7 @@ def slice_csr_sparse(data, indices, indptr, start_row, end_row):
 
 
 @njit(parallel=True)
-def _chunkdot_sparse_rowwise(
+def _chunkdot_sparse_rowwise(  # pylint: disable=too-many-arguments
     matrix_left_data,
     matrix_left_indices,
     matrix_left_indptr,
@@ -98,6 +101,7 @@ def _chunkdot_sparse_rowwise(
     right_n_cols,
     top_k,
     chunk_size,
+    progress_bar=None,
 ):
     """Parallelize the sparse matrix multiplication by converting the left matrix into chunks."""
     # pylint: disable=duplicate-code
@@ -108,7 +112,8 @@ def _chunkdot_sparse_rowwise(
         np.empty(n_non_zero, dtype="int64"),
     )
     # Round up since the in the last iteration chunk <= chunk_size
-    for i in prange(0, math.ceil(left_n_rows / chunk_size)):  # pylint: disable=not-an-iterable
+    num_iterations = math.ceil(left_n_rows / chunk_size)
+    for i in prange(0, num_iterations):  # pylint: disable=not-an-iterable
         start_row_i, end_row_i = i * chunk_size, (i + 1) * chunk_size
         data, indices, indptr = slice_csr_sparse(
             matrix_left_data, matrix_left_indices, matrix_left_indptr, start_row_i, end_row_i
@@ -129,12 +134,16 @@ def _chunkdot_sparse_rowwise(
             all_values[start_row_i * abs_top_k : end_row_i * abs_top_k],
             all_indices[start_row_i * abs_top_k : end_row_i * abs_top_k],
         )
+        if progress_bar is not None:
+            progress_bar.update(1)
     # standard CSR form representation
     all_indptr = np.arange(0, abs_top_k * (1 + left_n_rows), abs_top_k)
     return all_values, all_indices, all_indptr
 
 
-def chunkdot_sparse(matrix_left, matrix_right, top_k, chunk_size, return_type="float64"):
+def chunkdot_sparse(
+    matrix_left, matrix_right, top_k, chunk_size, return_type="float64", show_progress: bool = False
+):
     """Parallelize sparse matrix multiplication by converting the left matrix into chunks.
 
     Args:
@@ -146,6 +155,8 @@ def chunkdot_sparse(matrix_left, matrix_right, top_k, chunk_size, return_type="f
         chunk_size (int): The number of rows in the matrix_left to use per parallelized
             calculation.
         return_type (str): The return type of the matrix elements.
+        show_progress (bool): Whether to show tqdm-like progress bar
+            for parallel chunking
 
     Returns:
         scipy.sparse.csr_matrix: The result of the matrix multiplication as a CSR sparse matrix.
@@ -168,6 +179,9 @@ def chunkdot_sparse(matrix_left, matrix_right, top_k, chunk_size, return_type="f
         LOGGER.debug(f"Converting right matrix format from {right_format.upper()} to CSR.")
         matrix_right = matrix_right.tocsr()
 
+    num_iterations = math.ceil(left_n_rows / chunk_size)
+    progress_bar = ProgressBar(total=num_iterations) if show_progress else None
+
     values, indices, indptr = _chunkdot_sparse_rowwise(
         matrix_left.data,
         matrix_left.indices,
@@ -179,7 +193,11 @@ def chunkdot_sparse(matrix_left, matrix_right, top_k, chunk_size, return_type="f
         right_n_cols,
         top_k,
         chunk_size,
+        progress_bar=progress_bar,
     )
+
+    if progress_bar:
+        progress_bar.close()
     return csr_matrix(
         (values.astype(return_type), indices, indptr), shape=(left_n_rows, right_n_cols)
     )

@@ -1,5 +1,7 @@
 import numpy as np
+
 from scipy import sparse
+
 from chunkdot.chunkdot import chunkdot
 from chunkdot.chunkdot_sparse import chunkdot_sparse
 from chunkdot.utils import get_chunk_size_per_thread
@@ -11,6 +13,7 @@ def cosine_similarity_top_k(
     normalize: bool = True,
     max_memory: int = None,
     force_memory: bool = False,
+    show_progress: bool = False,
 ):
     """Calculate cosine similarity and only keep the K most similar items for each item.
 
@@ -29,6 +32,8 @@ def cosine_similarity_top_k(
             not marked as available to the OS. In this case is advised to set max_memory
             to chunkdot.utils.get_memory_available at the start of your Python process.
             Default False.
+        show_progress (bool): Whether to show tqdm-like progress bar
+            on chunked matrix multiplications. False by default.
 
     Returns:
         scipy.sparse.csr_matrix: Sparse matrix containing non-zero values only for the K most
@@ -74,10 +79,14 @@ def cosine_similarity_top_k(
         )
 
     chunk_size_per_thread = get_chunk_size_per_thread(n_rows, abs_top_k, max_memory, force_memory)
+
     if sparse.issparse(embeddings):
         similarities = chunkdot_sparse(
-            embeddings, embeddings.T, top_k, chunk_size_per_thread, return_type
+            embeddings, embeddings.T, top_k, chunk_size_per_thread, return_type, show_progress
         )
     else:
-        similarities = chunkdot(embeddings, embeddings.T, top_k, chunk_size_per_thread, return_type)
+        similarities = chunkdot(
+            embeddings, embeddings.T, top_k, chunk_size_per_thread, return_type, show_progress
+        )
+
     return similarities
