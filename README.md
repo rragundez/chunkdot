@@ -2,6 +2,13 @@
 
 Multi-threaded matrix multiplication and cosine similarity calculations. Appropriate for calculating the K most similar items for a large number of items by chunking the item matrix representation (embeddings) and using Numba to accelerate the calculations.
 
+## Related blog posts
+
+- [Cosine Similarity for 1 Trillion Pairs of Vectors
+](https://pub.towardsai.net/cosine-similarity-for-1-trillion-pairs-of-vectors-11f6a1ed6458)
+- [Bulk Similarity Calculations for Sparse Embeddings
+](https://pub.towardsai.net/scale-up-bulk-similarity-calculations-for-sparse-embeddings-fb3ecb624727)
+
 ## Usage
 
 ```bash
