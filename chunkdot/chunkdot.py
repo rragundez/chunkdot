@@ -5,7 +5,6 @@ from numba import njit, prange
 from numba_progress import ProgressBar
 from scipy.sparse import csr_matrix
 
-from chunkdot import numba_argpartition  # pylint: disable=unused-import
 from chunkdot.utils import to_sparse
 
 
