@@ -5,6 +5,7 @@ description = "Multi-threaded matrix multiplication and cosine similarity calcul
 authors = ["Rodrigo Agundez <rragundez@gmail.com>"]
 readme = "README.md"
 repository = "https://github.com/rragundez/chunkdot"
+license = {text = "MIT License"}
 classifiers = [
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
