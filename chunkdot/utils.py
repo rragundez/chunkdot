@@ -6,9 +6,26 @@ import numba
 from numba import njit
 import numpy as np
 import psutil
+from scipy import sparse
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+def normalize_embeddings(embeddings, return_type):
+    if sparse.issparse(embeddings):
+        norms = sparse.linalg.norm(embeddings, ord=2, axis=1)
+        norms[norms == 0] = np.inf
+        embeddings = sparse.diags(1 / norms) @ embeddings
+    else:
+        norms = np.linalg.norm(embeddings, ord=2, axis=1, keepdims=True)
+        embeddings = np.divide(
+            embeddings,
+            norms,
+            out=np.zeros_like(embeddings, dtype=return_type),
+            where=norms != 0,
+        )
+    return embeddings
 
 
 # Noting to parallelize in this function. It will raise an error if setting parallel to True since
@@ -48,22 +65,26 @@ def get_memory_available():
     return psutil.virtual_memory().available
 
 
-def get_chunk_size_per_thread(n_items, top_k, max_memory=None, force_memory=False):
+def get_chunk_size_per_thread(
+    n_items_left, n_items_right, embedding_dim, top_k, max_memory=None, force_memory=False
+):
     """Calculate the maximum row size of a matrix for a given memory threshold.
 
-    This calculation is very specific to the cosine_similarity_top_k algorithm. Given the total
-    number of items, the amount of similar items requested, the number of parallel threads to
-    execute and the memory threshold to consume, calculate the maximum number of rows to process
-    on each thread.
+    This calculation is very specific to the cosine_similarity_top_k algorithm. Given the number
+    of items in the left matrix, the number of items in the right matrix, the amount of similar
+    items requested, the number of parallel threads to execute and the memory threshold to consume,
+    calculate the maximum number of rows to process on each thread.
 
     The memory consumed by the cosine_similarity_top_k algorithm is:
 
     Memory = (
-        chunk_size x n_items x n_threads
-        + chunk_size x n_items x n_threads
-        + n_items x top_k
-        + n_items x top_k
-        + n_items
+        n_items_left x embedding_dim  # left matrix size
+        n_items_right x embedding_dim  # right matrix size if left matrix != right matrix
+        chunk_size x n_items_right x n_threads  # similarity values per chunk
+        + chunk_size x n_items_right x n_threads  # column indices of sorted similarities per row
+        + n_items_left x top_k  # matrix with all similarity values
+        + n_items_left x top_k  # matrix indptr according to CSR notation
+        + n_items_left  # matrix row indices according to CSR notation
     ) x 8 bytes
 
     This function returns the solution for chunk_size in the above equation.
@@ -105,8 +126,8 @@ def get_chunk_size_per_thread(n_items, top_k, max_memory=None, force_memory=Fals
             memory_to_use = max_memory
 
     n_threads = numba.get_num_threads()
-    numerator = memory_to_use - 8 * n_items * (2 * top_k + 1)
-    denominator = 16 * n_threads * n_items
+    numerator = memory_to_use - 8 * ((2 * top_k + 1) * n_items_left)
+    denominator = 16 * n_threads * n_items_right
     chunk_size = math.floor(numerator / denominator)
     LOGGER.debug(f"Memory available: {memory_available / 1E9:.2f} GB")
     LOGGER.debug(f"Maximum memory to use: {memory_to_use / 1E9:.2f} GB")
