@@ -22,7 +22,7 @@ def get_top_k(matrix, top_k):
 @pytest.mark.parametrize("n_items, top_k", [(5000, 66), (10000, 100)])
 def test_cosine_similarity_top_k_big(n_items, top_k):
     embedding_dim = 50
-    max_memory = int(10e6)  # force chunking by taking small amount of memory ~10MB
+    max_memory = int(50e6)  # force chunking by taking small amount of memory ~50MB
     np.random.seed(seed=21)
     embeddings = np.random.randn(n_items, embedding_dim)
     expected = cosine_similarity(embeddings)
@@ -38,7 +38,7 @@ def test_cosine_similarity_top_k_big(n_items, top_k):
 @pytest.mark.parametrize("sparse_format", ["csr", "csc", "coo"])
 def test_cosine_similarity_top_k_big_sparse(n_items, top_k, density, sparse_format):
     embedding_dim = 50
-    max_memory = int(10e6)  # force chunking by taking small amount of memory ~10MB
+    max_memory = int(50e6)  # force chunking by taking small amount of memory ~50MB
     embeddings = srand(
         n_items, embedding_dim, density=density, format=sparse_format, random_state=21
     )
@@ -56,7 +56,7 @@ def test_cosine_similarity_top_k_big_sparse(n_items, top_k, density, sparse_form
 @pytest.mark.parametrize("n_items, top_k", [(5000, -66), (10000, -100)])
 def test_cosine_similarity_negative_top_k_big(n_items, top_k):
     embedding_dim = 50
-    max_memory = int(10e6)  # force chunking by taking small amount of memory ~10MB
+    max_memory = int(50e6)  # force chunking by taking small amount of memory ~50MB
     np.random.seed(seed=21)
     embeddings = np.random.randn(n_items, embedding_dim)
     expected = cosine_similarity(embeddings)
@@ -70,7 +70,7 @@ def test_cosine_similarity_negative_top_k_big(n_items, top_k):
 @pytest.mark.parametrize("sparse_format", ["csr", "csc", "coo"])
 def test_cosine_similarity_negative_top_k_big_sparse(n_items, top_k, density, sparse_format):
     embedding_dim = 50
-    max_memory = int(10e6)  # force chunking by taking small amount of memory ~10MB
+    max_memory = int(50e6)  # force chunking by taking small amount of memory ~50MB
     embeddings = srand(
         n_items, embedding_dim, density=density, format=sparse_format, random_state=21
     )
@@ -93,9 +93,13 @@ def test_cosine_similarity_error(n_items, as_csr_sparse):
     if as_csr_sparse:
         embeddings = csr_matrix(embeddings)
 
-    top_k = n_items
     with pytest.raises(ValueError):
-        cosine_similarity_top_k(embeddings, top_k=top_k)
+        cosine_similarity_top_k(embeddings, top_k=n_items)
+
+    # make max memory small such that not even one chunk can be processed
+    max_memory = 16 * n_items + 8 * n_items * (2 * n_items + 1) - 10
+    with pytest.raises(ValueError):
+        cosine_similarity_top_k(embeddings, top_k=n_items, max_memory=max_memory)
 
 
 @pytest.mark.parametrize("n_items, top_k", [(10, 4), (51, 10), (100, 15), (732, 50), (1000, 77)])
@@ -226,7 +230,7 @@ def test_cosine_similarity_negative_top_k_zero_rows(top_k, as_csr_sparse):
 @pytest.mark.parametrize("as_csr_sparse", [False, True])
 def test_cosine_similarity_with_progress_bar(n_items, top_k, show_progress, as_csr_sparse):
     embedding_dim = 50
-    max_memory = int(10e6)  # force chunking by taking small amount of memory ~10MB
+    max_memory = int(50e6)  # force chunking by taking small amount of memory ~50MB
     embeddings = np.random.randn(n_items, embedding_dim)
     if as_csr_sparse:
         embeddings = csr_matrix(embeddings)
