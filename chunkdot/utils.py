@@ -112,4 +112,11 @@ def get_chunk_size_per_thread(n_items, top_k, max_memory=None, force_memory=Fals
     LOGGER.debug(f"Maximum memory to use: {memory_to_use / 1E9:.2f} GB")
     LOGGER.debug(f"Number of threads: {n_threads}")
     LOGGER.debug(f"Chunk size per thread: {chunk_size}")
+    min_memory_to_use = denominator + 8 * n_items * (2 * top_k + 1)
+    if chunk_size <= 1:
+        raise ValueError(
+            "The available memory or `max_memory` argument is not big enough to process a single "
+            "chunk. If you used the `max_memory` argument please increase it to a value equal or bigger "
+            f"than {min_memory_to_use  / 1E6:.2f}MB."
+        )
     return chunk_size
