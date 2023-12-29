@@ -126,14 +126,14 @@ def get_chunk_size_per_thread(
             memory_to_use = max_memory
 
     n_threads = numba.get_num_threads()
-    numerator = memory_to_use - 8 * ((2 * top_k + 1) * n_items_left)
+    numerator = memory_to_use - 8 * (2 * top_k + 1) * n_items_left
     denominator = 16 * n_threads * n_items_right
     chunk_size = math.floor(numerator / denominator)
     LOGGER.debug(f"Memory available: {memory_available / 1E9:.2f} GB")
     LOGGER.debug(f"Maximum memory to use: {memory_to_use / 1E9:.2f} GB")
     LOGGER.debug(f"Number of threads: {n_threads}")
     LOGGER.debug(f"Chunk size per thread: {chunk_size}")
-    min_memory_to_use = denominator + 8 * n_items * (2 * top_k + 1)
+    min_memory_to_use = denominator + 8 * (2 * top_k + 1) * n_items_left
     if chunk_size <= 1:
         raise ValueError(
             "The available memory or `max_memory` argument is not big enough to process a single "
