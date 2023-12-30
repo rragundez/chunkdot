@@ -13,6 +13,16 @@ LOGGER = logging.getLogger(__name__)
 
 
 def normalize_embeddings(embeddings, return_type):
+    """L2 normalization of each row.
+
+    Args:
+        embeddings (np.array or scipy.sparse matrix): 2D object containing the items embeddings,
+            of shape number of items x embedding dimension.
+        return_type (str): The return type of the matrix elements.
+
+    Returns:
+        np.array or scipy.sparse matrix: Embeddings matrix with each row L2 normalized.
+    """
     if sparse.issparse(embeddings):
         norms = sparse.linalg.norm(embeddings, ord=2, axis=1)
         norms[norms == 0] = np.inf
@@ -66,7 +76,7 @@ def get_memory_available():
 
 
 def get_chunk_size_per_thread(
-    n_items_left, n_items_right, embedding_dim, top_k, max_memory=None, force_memory=False
+    n_items_left, n_items_right, top_k, max_memory=None, force_memory=False
 ):
     """Calculate the maximum row size of a matrix for a given memory threshold.
 
@@ -137,7 +147,7 @@ def get_chunk_size_per_thread(
     if chunk_size <= 1:
         raise ValueError(
             "The available memory or `max_memory` argument is not big enough to process a single "
-            "chunk. If you used the `max_memory` argument please increase it to a value equal or bigger "
-            f"than {min_memory_to_use  / 1E6:.2f}MB."
+            "chunk. If you used the `max_memory` argument please increase it to a value equal or "
+            f"bigger than {min_memory_to_use  / 1E6:.2f}MB."
         )
     return chunk_size
