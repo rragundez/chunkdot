@@ -41,7 +41,8 @@ def cosine_similarity_top_k(
             to chunkdot.utils.get_memory_available at the start of your Python process.
             Default False.
         show_progress (bool): Whether to show tqdm-like progress bar
-            on chunked matrix multiplications. False by default.
+            on chunked matrix multiplications.
+            Default False.
 
     Returns:
         scipy.sparse.csr_matrix: Sparse matrix containing non-zero values only for the K most
