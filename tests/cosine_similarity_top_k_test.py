@@ -28,6 +28,7 @@ def test_cosine_similarity_top_k_big(n_items, top_k):
     expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
     calculated = cosine_similarity_top_k(embeddings, top_k=top_k, max_memory=max_memory)
+    assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(np.sort(calculated.data), np.sort(expected.data))
     assert len(calculated.indices) == len(expected.indices)
     np.testing.assert_array_almost_equal(calculated.indptr, expected.indptr)
@@ -46,6 +47,7 @@ def test_cosine_similarity_top_k_big_with_right(n_items, top_k):
     calculated = cosine_similarity_top_k(
         embeddings, embeddings_right=embeddings_right, top_k=top_k, max_memory=max_memory
     )
+    assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(np.sort(calculated.data), np.sort(expected.data))
     assert len(calculated.indices) == len(expected.indices)
     np.testing.assert_array_almost_equal(calculated.indptr, expected.indptr)
@@ -66,6 +68,35 @@ def test_cosine_similarity_top_k_big_sparse(n_items, top_k, density, sparse_form
     # There might be elements with the same similarity and it might be that in the
     # numpy implementation of get top K items returned are different than in
     # the numba implementation.
+    assert calculated.shape == expected.shape
+    np.testing.assert_array_almost_equal(np.sort(calculated.data), np.sort(expected.data))
+    assert len(calculated.indices) == len(expected.indices)
+    np.testing.assert_array_almost_equal(calculated.indptr, expected.indptr)
+
+
+@pytest.mark.parametrize("n_items, top_k", [(5000, 66), (10000, 100)])
+@pytest.mark.parametrize("density", [0.25, 0.1, 0.01])
+@pytest.mark.parametrize("sparse_format", ["csr", "csc", "coo"])
+def test_cosine_similarity_top_k_big_sparse_with_right(n_items, top_k, density, sparse_format):
+    embedding_dim = 50
+    max_memory = int(50e6)  # force chunking by taking small amount of memory ~50MB
+    embeddings = srand(
+        n_items, embedding_dim, density=density, format=sparse_format, random_state=21
+    )
+    idx = np.random.randint(n_items, size=n_items - 1)
+    if embeddings.getformat() == "coo":
+        embeddings_right = embeddings.tocsr()[idx].tocoo()
+    else:
+        embeddings_right = embeddings[idx]
+    expected = cosine_similarity(embeddings, embeddings_right)
+    expected = get_top_k(expected, top_k)
+    calculated = cosine_similarity_top_k(
+        embeddings, embeddings_right=embeddings_right, top_k=top_k, max_memory=max_memory
+    )
+    # There might be elements with the same similarity and it might be that in the
+    # numpy implementation of get top K items returned are different than in
+    # the numba implementation.
+    assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(np.sort(calculated.data), np.sort(expected.data))
     assert len(calculated.indices) == len(expected.indices)
     np.testing.assert_array_almost_equal(calculated.indptr, expected.indptr)
