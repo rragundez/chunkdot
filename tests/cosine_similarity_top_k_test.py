@@ -34,6 +34,24 @@ def test_cosine_similarity_top_k_big(n_items, top_k):
 
 
 @pytest.mark.parametrize("n_items, top_k", [(5000, 66), (10000, 100)])
+def test_cosine_similarity_top_k_big_with_right(n_items, top_k):
+    embedding_dim = 50
+    max_memory = int(50e6)  # force chunking by taking small amount of memory ~50MB
+    np.random.seed(seed=21)
+    embeddings = np.random.randn(n_items, embedding_dim)
+    idx = np.random.randint(n_items, size=n_items)
+    embeddings_right = embeddings[idx]
+    expected = cosine_similarity(embeddings, embeddings_right)
+    expected = get_top_k(expected, top_k)
+    calculated = cosine_similarity_top_k(
+        embeddings, embeddings_right=embeddings_right, top_k=top_k, max_memory=max_memory
+    )
+    np.testing.assert_array_almost_equal(np.sort(calculated.data), np.sort(expected.data))
+    assert len(calculated.indices) == len(expected.indices)
+    np.testing.assert_array_almost_equal(calculated.indptr, expected.indptr)
+
+
+@pytest.mark.parametrize("n_items, top_k", [(5000, 66), (10000, 100)])
 @pytest.mark.parametrize("density", [0.25, 0.1, 0.01])
 @pytest.mark.parametrize("sparse_format", ["csr", "csc", "coo"])
 def test_cosine_similarity_top_k_big_sparse(n_items, top_k, density, sparse_format):
