@@ -195,6 +195,9 @@ def test_cosine_similarity_error(n_items, as_csr_sparse):
     with pytest.raises(ValueError):
         cosine_similarity_top_k(embeddings, top_k=n_items)
 
+    with pytest.raises(ValueError):
+        cosine_similarity_top_k(embeddings, embeddings_right=embeddings, top_k=n_items)
+
     # make max memory small such that not even one chunk can be processed
     max_memory = 16 * n_items + 8 * n_items * (2 * n_items + 1) - 10
     with pytest.raises(ValueError):
