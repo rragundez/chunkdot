@@ -67,7 +67,7 @@ def cosine_similarity_top_k(
     if normalize:
         embeddings = normalize_embeddings(embeddings, return_type)
 
-    if embeddings_right:
+    if embeddings_right is not None:
         embeddings_right = embeddings_right.astype(return_type)
         if normalize:
             embeddings_right = normalize_embeddings(embeddings_right, return_type)
@@ -75,7 +75,7 @@ def cosine_similarity_top_k(
         embeddings_right = embeddings  # copy by reference
 
     n_rows_left = embeddings.shape[0]
-    n_rows_right = embeddings.shape[0]
+    n_rows_right = embeddings_right.shape[0]
     abs_top_k = abs(top_k)
 
     if abs_top_k >= n_rows_right:
@@ -85,16 +85,16 @@ def cosine_similarity_top_k(
         )
 
     chunk_size_per_thread = get_chunk_size_per_thread(
-        n_rows_left, n_rows_left, abs_top_k, max_memory, force_memory
+        n_rows_left, n_rows_right, abs_top_k, max_memory, force_memory
     )
 
-    if sparse.issparse(embeddings):
+    if sparse.issparse(embeddings) and sparse.issparse(embeddings_right):
         similarities = chunkdot_sparse(
-            embeddings, embeddings.T, top_k, chunk_size_per_thread, return_type, show_progress
+            embeddings, embeddings_right.T, top_k, chunk_size_per_thread, return_type, show_progress
         )
     else:
         similarities = chunkdot(
-            embeddings, embeddings.T, top_k, chunk_size_per_thread, return_type, show_progress
+            embeddings, embeddings_right.T, top_k, chunk_size_per_thread, return_type, show_progress
         )
 
     return similarities
