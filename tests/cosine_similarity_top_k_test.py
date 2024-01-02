@@ -41,7 +41,7 @@ def test_cosine_similarity_top_k_big_with_right(n_items, top_k):
     max_memory = int(50e6)  # force chunking by taking small amount of memory ~50MB
     np.random.seed(seed=21)
     embeddings = np.random.randn(n_items, embedding_dim)
-    idx = np.random.randint(n_items, size=n_items)
+    idx = np.random.randint(n_items, size=n_items - 1)
     embeddings_right = embeddings[idx]
     expected = cosine_similarity(embeddings, embeddings_right)
     expected = get_top_k(expected, top_k)
