@@ -329,6 +329,7 @@ def test_cosine_similarity_top_k_zero_rows(top_k, as_csr_sparse):
     expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
     calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
+    assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(calculated.toarray(), expected.toarray())
 
 
@@ -341,6 +342,7 @@ def test_cosine_similarity_negative_top_k_zero_rows(top_k, as_csr_sparse):
     expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
     calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
+    assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(calculated.toarray(), expected.toarray())
 
 
@@ -357,4 +359,5 @@ def test_cosine_similarity_with_progress_bar(n_items, top_k, show_progress, as_c
     calculated = cosine_similarity_top_k(
         embeddings, top_k=top_k, max_memory=max_memory, show_progress=show_progress
     )
+    assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(calculated.toarray(), expected.toarray())
