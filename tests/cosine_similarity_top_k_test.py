@@ -246,8 +246,10 @@ def test_cosine_similarity_top_k_manual(input_type, as_csr_sparse):
             [0.45644864, 0, 0.38271049, 1.0],
         ]
     ).astype(expected_type)
-
-    calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
+    if use_embeddings_right:
+        calculated = cosine_similarity_top_k(embeddings, embeddings_right=embeddings, top_k=top_k)
+    else:
+        calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
     assert calculated.dtype == expected.dtype
     assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(calculated.toarray(), expected)
@@ -270,7 +272,7 @@ def test_cosine_similarity_top_k_manual_unit(input_type, as_csr_sparse):
     if use_embeddings_right:
         expected_type = cosine_similarity(embeddings, embeddings).dtype
     else:
-    expected_type = cosine_similarity(embeddings).dtype
+        expected_type = cosine_similarity(embeddings).dtype
     expected = np.array(
         [
             [1.0, 0.40536558, 0, 0.80160769],
@@ -279,8 +281,10 @@ def test_cosine_similarity_top_k_manual_unit(input_type, as_csr_sparse):
             [0.80160769, 0, 0.60659962, 1.0],
         ]
     ).astype(expected_type)
-
-    calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
+    if use_embeddings_right:
+        calculated = cosine_similarity_top_k(embeddings, embeddings_right=embeddings, top_k=top_k)
+    else:
+        calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
     assert calculated.dtype == expected.dtype
     assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(calculated.toarray(), expected)
@@ -315,7 +319,7 @@ def test_cosine_similarity_negative_top_k_manual(input_type, as_csr_sparse):
     if use_embeddings_right:
         calculated = cosine_similarity_top_k(embeddings, embeddings_right=embeddings, top_k=top_k)
     else:
-    calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
+        calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
     assert calculated.dtype == expected.dtype
     assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(calculated.toarray(), expected)
