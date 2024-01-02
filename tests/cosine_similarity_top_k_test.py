@@ -233,6 +233,9 @@ def test_cosine_similarity_top_k_manual(input_type, as_csr_sparse):
     if as_csr_sparse:
         embeddings = csr_matrix(embeddings)
     top_k = 3
+    if use_embeddings_right:
+        expected_type = cosine_similarity(embeddings, embeddings).dtype
+    else:
     expected_type = cosine_similarity(embeddings).dtype
     expected = np.array(
         [
@@ -245,6 +248,7 @@ def test_cosine_similarity_top_k_manual(input_type, as_csr_sparse):
 
     calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
     assert calculated.dtype == expected.dtype
+    assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(calculated.toarray(), expected)
 
 
