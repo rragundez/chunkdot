@@ -7,7 +7,8 @@ from chunkdot.cosine_similarity_top_k import cosine_similarity_top_k
 
 
 def get_top_k(matrix, top_k):
-    n_items = len(matrix)
+    n_rows = len(matrix)
+    n_cols = matrix.shape[1]
     top_k_j = np.argpartition(matrix, -top_k)
     if top_k > 0:
         top_k_j = top_k_j[:, -top_k:]
@@ -15,8 +16,8 @@ def get_top_k(matrix, top_k):
         top_k_j = top_k_j[:, :-top_k]
     values = np.take_along_axis(matrix, top_k_j, axis=1).flatten()
     indices = top_k_j.flatten()
-    indptr = np.arange(0, abs(top_k) * (1 + n_items), abs(top_k))
-    return csr_matrix((values, indices, indptr), shape=(n_items, n_items))
+    indptr = np.arange(0, abs(top_k) * (1 + n_rows), abs(top_k))
+    return csr_matrix((values, indices, indptr), shape=(n_rows, n_cols))
 
 
 @pytest.mark.parametrize("n_items, top_k", [(5000, 66), (10000, 100)])
