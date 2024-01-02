@@ -111,6 +111,7 @@ def test_cosine_similarity_negative_top_k_big(n_items, top_k):
     expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
     calculated = cosine_similarity_top_k(embeddings, top_k=top_k, max_memory=max_memory)
+    assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(calculated.toarray(), expected.toarray())
 
 
