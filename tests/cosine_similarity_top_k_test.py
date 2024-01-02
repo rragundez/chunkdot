@@ -217,12 +217,35 @@ def test_cosine_similarity_top_k(n_items, top_k, embedding_dim, as_csr_sparse):
     expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
     calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
-    np.testing.assert_array_almost_equal(calculated.toarray(), expected.toarray())
+    assert calculated.shape == expected.shape
+    np.testing.assert_array_almost_equal(np.sort(calculated.data), np.sort(expected.data))
+    assert len(calculated.indices) == len(expected.indices)
+    np.testing.assert_array_almost_equal(calculated.indptr, expected.indptr)
+
+
+@pytest.mark.parametrize("n_items, top_k", [(10, 4), (51, 10), (100, 15), (732, 50), (1000, 77)])
+@pytest.mark.parametrize("embedding_dim", [10, 33, 66, 100])
+@pytest.mark.parametrize("as_csr_sparse", [False, True])
+def test_cosine_similarity_top_k_with_right(n_items, top_k, embedding_dim, as_csr_sparse):
+    np.random.seed(seed=21)
+    embeddings = np.random.randn(n_items, embedding_dim)
+    if as_csr_sparse:
+        embeddings = csr_matrix(embeddings)
+    idx = np.random.randint(n_items, size=n_items - 1)
+    embeddings_right = embeddings[idx]
+    expected = cosine_similarity(embeddings, embeddings_right)
+    expected = get_top_k(expected, top_k)
+    calculated = cosine_similarity_top_k(embeddings, embeddings_right=embeddings_right, top_k=top_k)
+    assert calculated.shape == expected.shape
+    np.testing.assert_array_almost_equal(np.sort(calculated.data), np.sort(expected.data))
+    assert len(calculated.indices) == len(expected.indices)
+    np.testing.assert_array_almost_equal(calculated.indptr, expected.indptr)
 
 
 @pytest.mark.parametrize("input_type", ["int8", "int16", "int32", "int64", "float32", "float64"])
 @pytest.mark.parametrize("as_csr_sparse", [False, True])
-def test_cosine_similarity_top_k_manual(input_type, as_csr_sparse):
+@pytest.mark.parametrize("use_embeddings_right", [False, True])
+def test_cosine_similarity_top_k_manual(input_type, as_csr_sparse, use_embeddings_right):
     embeddings = np.array(
         [
             [1, 3, 5, 2, -1, 10],
@@ -237,7 +260,7 @@ def test_cosine_similarity_top_k_manual(input_type, as_csr_sparse):
     if use_embeddings_right:
         expected_type = cosine_similarity(embeddings, embeddings).dtype
     else:
-    expected_type = cosine_similarity(embeddings).dtype
+        expected_type = cosine_similarity(embeddings).dtype
     expected = np.array(
         [
             [1.0, 0.40536558, 0, 0.45644864],
@@ -257,7 +280,8 @@ def test_cosine_similarity_top_k_manual(input_type, as_csr_sparse):
 
 @pytest.mark.parametrize("input_type", ["uint8", "uint16", "uint32", "uint64"])
 @pytest.mark.parametrize("as_csr_sparse", [False, True])
-def test_cosine_similarity_top_k_manual_unit(input_type, as_csr_sparse):
+@pytest.mark.parametrize("use_embeddings_right", [False, True])
+def test_cosine_similarity_top_k_manual_unit(input_type, as_csr_sparse, use_embeddings_right):
     embeddings = np.array(
         [
             [1, 3, 5, 2, 1, 10],
@@ -292,7 +316,8 @@ def test_cosine_similarity_top_k_manual_unit(input_type, as_csr_sparse):
 
 @pytest.mark.parametrize("input_type", ["int8", "int16", "int32", "int64", "float32", "float64"])
 @pytest.mark.parametrize("as_csr_sparse", [False, True])
-def test_cosine_similarity_negative_top_k_manual(input_type, as_csr_sparse):
+@pytest.mark.parametrize("use_embeddings_right", [False, True])
+def test_cosine_similarity_negative_top_k_manual(input_type, as_csr_sparse, use_embeddings_right):
     embeddings = np.array(
         [
             [1, 3, 5, 2, -1, 10],
@@ -307,7 +332,7 @@ def test_cosine_similarity_negative_top_k_manual(input_type, as_csr_sparse):
     if use_embeddings_right:
         expected_type = cosine_similarity(embeddings, embeddings).dtype
     else:
-    expected_type = cosine_similarity(embeddings).dtype
+        expected_type = cosine_similarity(embeddings).dtype
     expected = np.array(
         [
             [0, 0.40536558, 0.21689401, 0],
