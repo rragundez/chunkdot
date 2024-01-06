@@ -206,6 +206,22 @@ def test_cosine_similarity_error(n_items, as_csr_sparse):
         cosine_similarity_top_k(embeddings, top_k=n_items, max_memory=max_memory)
 
 
+@pytest.mark.parametrize("as_csr_sparse", [False, True])
+def test_cosine_similarity_mix_type_error(as_csr_sparse):
+    n_items = 10
+    top_k = 2
+    np.random.seed(seed=21)
+    embeddings = np.random.randn(n_items, 100)
+    if as_csr_sparse:
+        embeddings = csr_matrix(embeddings)
+        embeddings_right = embeddings.todense()
+    else:
+        embeddings_right = csr_matrix(embeddings)
+
+    with pytest.raises(TypeError):
+        cosine_similarity_top_k(embeddings, embeddings_right=embeddings_right, top_k=top_k)
+
+
 @pytest.mark.parametrize("n_items, top_k", [(10, 4), (51, 10), (100, 15), (732, 50), (1000, 77)])
 @pytest.mark.parametrize("embedding_dim", [10, 33, 66, 100])
 @pytest.mark.parametrize("as_csr_sparse", [False, True])
