@@ -6,12 +6,14 @@ from scipy import sparse
 
 from chunkdot.chunkdot import chunkdot
 from chunkdot.chunkdot_sparse import chunkdot_sparse
-from chunkdot.utils import get_chunk_size_per_thread
+from chunkdot.utils import get_chunk_size_per_thread, normalize_embeddings
 
 
 def cosine_similarity_top_k(
     embeddings: Union[np.ndarray, sparse.spmatrix],
+    *,
     top_k: int,
+    embeddings_right: Union[np.ndarray, sparse.spmatrix] = None,
     normalize: bool = True,
     max_memory: int = None,
     force_memory: bool = False,
@@ -23,6 +25,10 @@ def cosine_similarity_top_k(
         embeddings (np.array or scipy.sparse matrix): 2D object containing the items embeddings,
             of shape number of items x embedding dimension.
         top_k (int): The amount of similar items per item to return.
+        embeddings_right (np.array or scipy.sparse matrix): 2D object containing the items
+            embeddings used for cosine similarity calculations. If None, items in `embeddings` will
+            be compared with themselves.
+            Default None.
         normalize (bool): If to apply L2-norm to each row.
             Default True.
         max_memory (int): Maximum amount of memory to use in bytes. If None it will use the
@@ -35,7 +41,8 @@ def cosine_similarity_top_k(
             to chunkdot.utils.get_memory_available at the start of your Python process.
             Default False.
         show_progress (bool): Whether to show tqdm-like progress bar
-            on chunked matrix multiplications. False by default.
+            on chunked matrix multiplications.
+            Default False.
 
     Returns:
         scipy.sparse.csr_matrix: Sparse matrix containing non-zero values only for the K most
@@ -43,6 +50,7 @@ def cosine_similarity_top_k(
 
     Raises:
         ValueError:
+        TypeError:
 
     This will:
         1. Normalize the rows in the "embeddings" matrix to have unit L2 norm.
@@ -58,37 +66,42 @@ def cosine_similarity_top_k(
     return_type = "float32" if embeddings.dtype == np.float32 else "float64"
     embeddings = embeddings.astype(return_type)
     if normalize:
-        if sparse.issparse(embeddings):
-            norms = sparse.linalg.norm(embeddings, ord=2, axis=1)
-            norms[norms == 0] = np.inf
-            embeddings = sparse.diags(1 / norms) @ embeddings
-        else:
-            norms = np.linalg.norm(embeddings, ord=2, axis=1, keepdims=True)
-            embeddings = np.divide(
-                embeddings,
-                norms,
-                out=np.zeros_like(embeddings, dtype=return_type),
-                where=norms != 0,
-            )
+        embeddings = normalize_embeddings(embeddings, return_type)
 
-    n_rows = embeddings.shape[0]
+    if embeddings_right is not None:
+        embeddings_right = embeddings_right.astype(return_type)
+        if normalize:
+            embeddings_right = normalize_embeddings(embeddings_right, return_type)
+    else:
+        embeddings_right = embeddings  # copy by reference
+
+    n_rows_left = embeddings.shape[0]
+    n_rows_right = embeddings_right.shape[0]
     abs_top_k = abs(top_k)
 
-    if abs_top_k >= n_rows:
+    if abs_top_k >= n_rows_right:
         raise ValueError(
             f"The number of requested similar items (top_k={abs_top_k}) must be less than the "
-            f"total number of items (embeddings.shape[0]={n_rows})"
+            f"number of items available for comparison ({n_rows_right})"
         )
 
-    chunk_size_per_thread = get_chunk_size_per_thread(n_rows, abs_top_k, max_memory, force_memory)
+    chunk_size_per_thread = get_chunk_size_per_thread(
+        n_rows_left, n_rows_right, abs_top_k, max_memory, force_memory
+    )
 
-    if sparse.issparse(embeddings):
+    if sparse.issparse(embeddings) and sparse.issparse(embeddings_right):
         similarities = chunkdot_sparse(
-            embeddings, embeddings.T, top_k, chunk_size_per_thread, return_type, show_progress
+            embeddings, embeddings_right.T, top_k, chunk_size_per_thread, return_type, show_progress
+        )
+    elif not sparse.issparse(embeddings) and not sparse.issparse(embeddings_right):
+        similarities = chunkdot(
+            embeddings, embeddings_right.T, top_k, chunk_size_per_thread, return_type, show_progress
         )
     else:
-        similarities = chunkdot(
-            embeddings, embeddings.T, top_k, chunk_size_per_thread, return_type, show_progress
+        raise TypeError(
+            "Both embeddings matrices must be the same type, either dense or sparse. Matrix "
+            f"`embeddings` is of type {type(embeddings)} and "
+            f"`embeddings_right` is of type {type(embeddings_right)}"
         )
 
     return similarities
