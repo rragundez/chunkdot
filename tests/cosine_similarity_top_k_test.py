@@ -397,6 +397,11 @@ def test_cosine_similarity_negative_top_k_zero_rows(top_k, as_csr_sparse):
         embeddings = csr_matrix(embeddings)
     expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
+    if use_embeddings_right:
+        calculated = cosine_similarity_top_k(
+            embeddings, embeddings_right=embeddings_right, top_k=top_k
+        )
+    else:
     calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
     assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(calculated.toarray(), expected.toarray())
