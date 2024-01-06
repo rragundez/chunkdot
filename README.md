@@ -88,3 +88,20 @@ timeit(lambda: cosine_similarity_top_k(embeddings, top_k=50, max_memory=20E9), n
 ```
 51.87472256699999
 ```
+### Similarity calculation versus other embeddings
+
+Given 20K items, for each item, find the 50 most similar items in a collection of other 10K items.
+
+```python
+import numpy as np
+from chunkdot import cosine_similarity_top_k
+
+embeddings = np.random.randn(20000, 256)
+other_embeddings = np.random.randn(10000, 256)
+
+cosine_similarity_top_k(embeddings, embeddings_right=other_embeddings, top_k=10)
+```
+```
+<20000x10000 sparse matrix of type '<class 'numpy.float64'>'
+ with 200000 stored elements in Compressed Sparse Row format>
+```
