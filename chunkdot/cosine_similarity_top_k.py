@@ -50,6 +50,7 @@ def cosine_similarity_top_k(
 
     Raises:
         ValueError:
+        TypeError:
 
     This will:
         1. Normalize the rows in the "embeddings" matrix to have unit L2 norm.
@@ -92,9 +93,15 @@ def cosine_similarity_top_k(
         similarities = chunkdot_sparse(
             embeddings, embeddings_right.T, top_k, chunk_size_per_thread, return_type, show_progress
         )
-    else:
+    elif not sparse.issparse(embeddings) and not sparse.issparse(embeddings_right):
         similarities = chunkdot(
             embeddings, embeddings_right.T, top_k, chunk_size_per_thread, return_type, show_progress
+        )
+    else:
+        raise TypeError(
+            "Both embeddings matrices must be the same type, either dense or sparse. Matrix "
+            f"`embeddings` is of type {type(embeddings)} and "
+            f"`embeddings_right` is of type {type(embeddings_right)}"
         )
 
     return similarities
