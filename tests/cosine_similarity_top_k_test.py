@@ -368,7 +368,8 @@ def test_cosine_similarity_negative_top_k_manual(input_type, as_csr_sparse, use_
 
 @pytest.mark.parametrize("top_k", [1, 2, 3])
 @pytest.mark.parametrize("as_csr_sparse", [False, True])
-def test_cosine_similarity_top_k_zero_rows(top_k, as_csr_sparse):
+@pytest.mark.parametrize("use_embeddings_right", [False, True])
+def test_cosine_similarity_top_k_zero_rows(top_k, as_csr_sparse, use_embeddings_right):
     embeddings = np.array([[0, 0, 0], [34, 22, 11], [0, 0, 0], [11, 21, 34]])
     if as_csr_sparse:
         embeddings = csr_matrix(embeddings)
@@ -377,34 +378,44 @@ def test_cosine_similarity_top_k_zero_rows(top_k, as_csr_sparse):
         embeddings_right = embeddings[idx]
         expected = cosine_similarity(embeddings, embeddings_right)
     else:
-    expected = cosine_similarity(embeddings)
+        expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
     if use_embeddings_right:
         calculated = cosine_similarity_top_k(
             embeddings, embeddings_right=embeddings_right, top_k=top_k
         )
     else:
-    calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
+        calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
     assert calculated.shape == expected.shape
-    np.testing.assert_array_almost_equal(calculated.toarray(), expected.toarray())
+    np.testing.assert_array_almost_equal(np.sort(calculated.data), np.sort(expected.data))
+    assert len(calculated.indices) == len(expected.indices)
+    np.testing.assert_array_almost_equal(calculated.indptr, expected.indptr)
 
 
 @pytest.mark.parametrize("top_k", [-1, -2, -3])
 @pytest.mark.parametrize("as_csr_sparse", [False, True])
-def test_cosine_similarity_negative_top_k_zero_rows(top_k, as_csr_sparse):
+@pytest.mark.parametrize("use_embeddings_right", [False, True])
+def test_cosine_similarity_negative_top_k_zero_rows(top_k, as_csr_sparse, use_embeddings_right):
     embeddings = np.array([[0, 0, 0], [34, 22, 11], [0, 0, 0], [11, 21, 34]])
     if as_csr_sparse:
         embeddings = csr_matrix(embeddings)
-    expected = cosine_similarity(embeddings)
+    if use_embeddings_right:
+        idx = np.random.randint(4, size=4)
+        embeddings_right = embeddings[idx]
+        expected = cosine_similarity(embeddings, embeddings_right)
+    else:
+        expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
     if use_embeddings_right:
         calculated = cosine_similarity_top_k(
             embeddings, embeddings_right=embeddings_right, top_k=top_k
         )
     else:
-    calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
+        calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
     assert calculated.shape == expected.shape
-    np.testing.assert_array_almost_equal(calculated.toarray(), expected.toarray())
+    np.testing.assert_array_almost_equal(np.sort(calculated.data), np.sort(expected.data))
+    assert len(calculated.indices) == len(expected.indices)
+    np.testing.assert_array_almost_equal(calculated.indptr, expected.indptr)
 
 
 @pytest.mark.parametrize("n_items, top_k, show_progress", [(5000, -15, True), (5000, -15, False)])
