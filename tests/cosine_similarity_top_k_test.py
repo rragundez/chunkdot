@@ -372,8 +372,18 @@ def test_cosine_similarity_top_k_zero_rows(top_k, as_csr_sparse):
     embeddings = np.array([[0, 0, 0], [34, 22, 11], [0, 0, 0], [11, 21, 34]])
     if as_csr_sparse:
         embeddings = csr_matrix(embeddings)
+    if use_embeddings_right:
+        idx = np.random.randint(4, size=4)
+        embeddings_right = embeddings[idx]
+        expected = cosine_similarity(embeddings, embeddings_right)
+    else:
     expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
+    if use_embeddings_right:
+        calculated = cosine_similarity_top_k(
+            embeddings, embeddings_right=embeddings_right, top_k=top_k
+        )
+    else:
     calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
     assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(calculated.toarray(), expected.toarray())
