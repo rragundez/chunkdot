@@ -5,7 +5,82 @@ from scipy import sparse
 
 from chunkdot.chunkdot import chunkdot
 from chunkdot.chunkdot_sparse import chunkdot_sparse
-from chunkdot.utils import get_chunk_size_per_thread, normalize_embeddings
+from chunkdot.utils import (
+    get_chunk_size_per_thread,
+    is_package_installed,
+    normalize_embeddings,
+)
+
+if is_package_installed("sklearn"):
+    from sklearn.base import BaseEstimator, TransformerMixin
+
+    class CosineSimilarityTopK(BaseEstimator, TransformerMixin):
+        """Sklean transformer for row pairwise calculation of cosine similarity.
+
+        Args:
+            top_k (int): The amount of similar items per item to return.
+            normalize (bool): If to apply L2-norm to each row.
+            Default True.
+        max_memory (int): Maximum amount of memory to use in bytes. If None it will use the
+            available memory to the system according to chunkdot.utils.get_memory_available.
+            Default None.
+        force_memory (bool): Use max_memory even if it is bigger than the memory
+            available. This can be desired if the cosine similarity calculation is used many times
+            within the same Python process, such that objects are garbage collected but memory is
+            not marked as available to the OS. In this case is advised to set max_memory
+            to chunkdot.utils.get_memory_available at the start of your Python process.
+            Default False.
+        """
+
+        def __init__(
+            self,
+            top_k: int,
+            normalize: bool = True,
+            max_memory: int = None,
+            force_memory: bool = False,
+            show_progress: bool = False,
+            min_abs_value=0,
+        ):
+            self.top_k = top_k
+            self.normalize = normalize
+            self.max_memory = max_memory
+            self.force_memory = force_memory
+            self.show_progress = show_progress
+            self.min_abs_value = min_abs_value
+
+        def fit(self, X, y=None):  # noqa: N803
+            """No state is needed to perform this transformation."""
+            return self
+
+        def transform(self, X, y=None):  # noqa: N803
+            """Calculate cosine similarity between all pairs of rows.
+
+            Only the K most similar items for each item are kept. An additional filter is applied if
+            min_abs_value is set during the creation of this class, where similarity values with
+            an absolute value less than min_abs_value are filtered out by setting them to zero.
+
+            Args:
+                X (np.array or scipy.sparse matrix): 2D object containing the items embeddings,
+                    of shape number of items x embedding dimension.
+                y : Dummy argument to comply with sklearn's transformer API.
+
+            Returns:
+                scipy.sparse.csr_matrix: Sparse matrix containing non-zero values for the K most
+                    similar items per item.
+            """
+            similarity_matrix = cosine_similarity_top_k(
+                embeddings=X,
+                top_k=self.top_k,
+                normalize=self.normalize,
+                max_memory=self.max_memory,
+                force_memory=self.force_memory,
+                show_progress=self.show_progress,
+            )
+            if self.min_abs_value > 0:
+                mask = np.abs(similarity_matrix.data) < self.min_abs_value
+                similarity_matrix.data[mask] = 0
+                similarity_matrix.eliminate_zeros()
+            return similarity_matrix
 
 
 def cosine_similarity_top_k(
@@ -90,11 +165,21 @@ def cosine_similarity_top_k(
 
     if sparse.issparse(embeddings) and sparse.issparse(embeddings_right):
         similarities = chunkdot_sparse(
-            embeddings, embeddings_right.T, top_k, chunk_size_per_thread, return_type, show_progress
+            embeddings,
+            embeddings_right.T,
+            top_k,
+            chunk_size_per_thread,
+            return_type,
+            show_progress,
         )
     elif not sparse.issparse(embeddings) and not sparse.issparse(embeddings_right):
         similarities = chunkdot(
-            embeddings, embeddings_right.T, top_k, chunk_size_per_thread, return_type, show_progress
+            embeddings,
+            embeddings_right.T,
+            top_k,
+            chunk_size_per_thread,
+            return_type,
+            show_progress,
         )
     else:
         raise TypeError(
