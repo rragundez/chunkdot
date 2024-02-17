@@ -48,6 +48,7 @@ select = [
 ignore = [
   "D104",  # undocumented-public-package
   "D100",  # undocumented-public-module
+  "D107",  # undocumented-public-init
 ]
 pydocstyle.convention = "google"
 pylint.max-args = 10
