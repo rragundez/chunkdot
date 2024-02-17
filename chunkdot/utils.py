@@ -155,6 +155,14 @@ def get_chunk_size_per_thread(
 
 
 def is_package_installed(package_name):
+    """Check if a package is installed in the current Python runtime.
+
+    Args:
+        package_name (str): The name of the package to check.
+
+    Returns:
+        bool: True if the package is installed, False if it is not.
+    """
     if importlib.util.find_spec(package_name) is None:
         exists = False
     else:
