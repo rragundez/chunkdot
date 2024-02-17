@@ -11,9 +11,9 @@ if is_package_installed("sklearn"):
     from chunkdot.cosine_similarity_top_k import CosineSimilarityTopK
 else:
     warnings.warn(
-        "Scikit-learn is not installed, therefore chunkdot's sklearn transformer 'CosineSimilarityTopK' "
-        "will not be loaded. If you plan to use the 'CosineSimilarityTopK' transformer please install "
-        "scikit-learn and re-import chunkdot."
+        "Scikit-learn is not installed, therefore chunkdot's sklearn transformer "
+        "'CosineSimilarityTopK' will not be loaded. If you plan to use the 'CosineSimilarityTopK' "
+        "transformer, please install scikit-learn and re-import chunkdot."
     )
 
 __version__ = "0.3.0"
