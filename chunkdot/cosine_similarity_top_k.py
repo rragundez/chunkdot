@@ -1,12 +1,54 @@
 from typing import Union
 
 import numpy as np
-
 from scipy import sparse
 
+from chunkdot import cosine_similarity_top_k
 from chunkdot.chunkdot import chunkdot
 from chunkdot.chunkdot_sparse import chunkdot_sparse
-from chunkdot.utils import get_chunk_size_per_thread, normalize_embeddings
+from chunkdot.utils import (
+    get_chunk_size_per_thread,
+    is_package_installed,
+    normalize_embeddings,
+)
+
+if is_package_installed("sklearn"):
+    from sklearn.base import BaseEstimator, TransformerMixin
+
+    class CosineSimilarityTopK(BaseEstimator, TransformerMixin):
+        def __init__(
+            self,
+            top_K,
+            normalize: bool = True,
+            max_memory: int = None,
+            force_memory: bool = False,
+            show_progress: bool = False,
+            min_abs_value=0,
+        ):
+            self.top_K = top_K
+            self.normalize = normalize
+            self.max_memory = max_memory
+            self.force_memory = force_memory
+            self.show_progress = show_progress
+            self.min_abs_value = min_abs_value
+
+        def fit(self, X, y=None):
+            return self
+
+        def transform(self, X, y=None):
+            similarity_matrix = cosine_similarity_top_k(
+                embeddings=X,
+                top_k=self.top_K,
+                normalize=self.normalize,
+                max_memory=self.max_memory,
+                force_memory=self.force_memory,
+                show_progress=self.show_progress,
+            )
+            if self.min_abs_value > 0:
+                mask = np.abs(similarity_matrix.data) < self.min_abs_value
+                similarity_matrix.data[mask] = 0
+                similarity_matrix.eliminate_zeros()
+            return similarity_matrix
 
 
 def cosine_similarity_top_k(
@@ -91,11 +133,21 @@ def cosine_similarity_top_k(
 
     if sparse.issparse(embeddings) and sparse.issparse(embeddings_right):
         similarities = chunkdot_sparse(
-            embeddings, embeddings_right.T, top_k, chunk_size_per_thread, return_type, show_progress
+            embeddings,
+            embeddings_right.T,
+            top_k,
+            chunk_size_per_thread,
+            return_type,
+            show_progress,
         )
     elif not sparse.issparse(embeddings) and not sparse.issparse(embeddings_right):
         similarities = chunkdot(
-            embeddings, embeddings_right.T, top_k, chunk_size_per_thread, return_type, show_progress
+            embeddings,
+            embeddings_right.T,
+            top_k,
+            chunk_size_per_thread,
+            return_type,
+            show_progress,
         )
     else:
         raise TypeError(
