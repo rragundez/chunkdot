@@ -1,7 +1,6 @@
 from typing import Union
 
 import numpy as np
-
 from scipy import sparse
 
 from chunkdot.chunkdot import chunkdot

@@ -31,7 +31,7 @@ def sparse_dot(
     matrix_right_indptr,
     right_n_cols,
 ):
-    """Sparse matrix multiplication matrix_left x matrix_right
+    """Sparse matrix multiplication matrix_left x matrix_right.
 
     Both matrices must be in the CSR sparse format.
     Data, indices and indptr are the standard CSR representation where the column indices for row i
