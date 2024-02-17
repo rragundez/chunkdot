@@ -19,12 +19,12 @@ numba = "^0.57.0"
 numpy = "^1.23"
 scipy = "^1.10.1"
 numba-progress = "^0.0.4"
+ruff = "^0.2.1"
 
 [tool.poetry.group.dev.dependencies]
 jupyter = "^1.0.0"
 scikit-learn = "^1.2.1"
 matplotlib = "^3.7.1"
-black = "^23.1.0"
 pylint = "^2.16.4"
 pandas = "^1.5.3"
 pytest = "^7.2.2"
@@ -34,20 +34,26 @@ toml = "^0.10.2"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.black]
+[tool.ruff]
 line-length = 100
+
+[tool.ruff.lint]
+select = [
+  "D",  # pydocstyle
+  "E",  # pycodestyle
+  "F",  # pyflakes
+  "I",  # isort
+  "N",  # pep8-naming
+]
+ignore = [
+  "D104",  # undocumented-public-package
+  "D100",  # undocumented-public-module
+]
+pydocstyle.convention = "google"
+pylint.max-args = 10
 
 [tool.pytest.ini_options]
 addopts = "-x --log-cli-level=INFO"
 testpaths = [
     "tests",
-]
-
-[tool.pylint.messages_control]
-max-line-length = 100
-max-args = 10
-disable = [
-  "missing-module-docstring",
-  "logging-fstring-interpolation",
-  "too-many-locals",
 ]

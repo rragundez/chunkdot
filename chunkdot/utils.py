@@ -3,11 +3,10 @@ import math
 import warnings
 
 import numba
-from numba import njit
 import numpy as np
 import psutil
+from numba import njit
 from scipy import sparse
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -100,7 +99,8 @@ def get_chunk_size_per_thread(
     This function returns the solution for chunk_size in the above equation.
 
     Args:
-        n_items (int): The total number of items used to perform the similarity pairwise operation.
+        n_items_left (int): The number of items to be compared.
+        n_items_right (int): The number of items to be compared to.
         top_k (int): The amount of similar items per item to return.
         max_memory (int): Maximum amount of memory to use in bytes.
         force_memory (bool): Use max_memory even if it is bigger than the memory

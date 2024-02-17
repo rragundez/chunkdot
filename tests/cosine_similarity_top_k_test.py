@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
-from scipy.sparse import csr_matrix, rand as srand
+from scipy.sparse import csr_matrix
+from scipy.sparse import rand as srand
 from sklearn.metrics.pairwise import cosine_similarity
 
 from chunkdot.cosine_similarity_top_k import cosine_similarity_top_k
