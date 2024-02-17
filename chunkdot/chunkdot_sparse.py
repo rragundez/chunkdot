@@ -77,6 +77,8 @@ def slice_csr_sparse(data, indices, indptr, start_row, end_row):
         data (numpy.array): Non-zero value of the sparse matrix.
         indices (numpy.array): Column positions of non-zero values.
         indptr (numpy.array): Array with the count of non-zero values per row.
+        start_row (int): Index of the first row to include in the slice.
+        end_row (int): Index of the last row to include in the slice.
 
     Returns:
         3 arrays containing the sparse CSR matrix information of the slice.
