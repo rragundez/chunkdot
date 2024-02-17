@@ -31,7 +31,7 @@ def sparse_dot(
     matrix_right_indptr,
     right_n_cols,
 ):
-    """Sparse matrix multiplication matrix_left x matrix_right
+    """Sparse matrix multiplication matrix_left x matrix_right.
 
     Both matrices must be in the CSR sparse format.
     Data, indices and indptr are the standard CSR representation where the column indices for row i
@@ -39,12 +39,14 @@ def sparse_dot(
     data[indptr[i]:indptr[i+1]].
 
     Args:
-        matrix_left_data (numpy.array): Non-zero value of the sparse matrix.
-        matrix_left_indices (numpy.array): Column positions of non-zero values.
+        matrix_left_data (numpy.array): Non-zero values of the left sparse matrix.
+        matrix_left_indices (numpy.array): Column index of non-zero values of the left matrix.
         matrix_left_indptr (numpy.array): Array with the count of non-zero values per row.
-        matrix_right_data (numpy.array): Non-zero value of the sparse matrix.
-        matrix_right_indices (numpy.array): Column positions of non-zero values.
+        left_n_rows (int): The number of rows of the left matrix.
+        matrix_right_data (numpy.array): Non-zero values of the right sparse matrix.
+        matrix_right_indices (numpy.array): Column index of non-zero values of the right matrix.
         matrix_right_indptr (numpy.array): Array with the count of non-zero values per row.
+        right_n_cols (int): The number of columns of the right matrix.
 
     Returns:
         numpy.array: 2D array with the result of the matrix multiplication.
@@ -75,6 +77,8 @@ def slice_csr_sparse(data, indices, indptr, start_row, end_row):
         data (numpy.array): Non-zero value of the sparse matrix.
         indices (numpy.array): Column positions of non-zero values.
         indptr (numpy.array): Array with the count of non-zero values per row.
+        start_row (int): Index of the first row to include in the slice.
+        end_row (int): Index of the last row to include in the slice.
 
     Returns:
         3 arrays containing the sparse CSR matrix information of the slice.
