@@ -105,3 +105,67 @@ cosine_similarity_top_k(embeddings, embeddings_right=other_embeddings, top_k=10)
 <20000x10000 sparse matrix of type '<class 'numpy.float64'>'
  with 200000 stored elements in Compressed Sparse Row format>
 ```
+
+ ### CosineSimilarityTopK scikit-learn transformer
+
+Given a pandas DataFrame with 100K rows and
+
+- 2 numerical columns
+- 2 categorical columns with 500 categories each
+
+use scikit-learn transformers, the standard scaler for the numerical columns and one-hot encode the categorical columns, to form an embeddings matrix of dimensions 100K x 1002 and then calculate the top 50 most similar rows per each row.
+
+```python
+import numpy as np
+import pandas as pd
+
+n_rows = 100000
+n_categories = 500
+df = pd.DataFrame(
+    {
+        "A_numeric": np.random.rand(n_rows),
+        "B_numeric": np.random.rand(n_rows),
+        "C_categorical": np.random.randint(n_categories, size=n_rows),
+        "D_categorical": np.random.randint(n_categories, size=n_rows),
+    }
+)
+```
+```python
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+
+from chunkdot import CosineSimilarityTopK
+
+numeric_features = ["A_numeric", "B_numeric"]
+numeric_transformer = Pipeline(steps=[("scaler", StandardScaler())])
+
+categorical_features = ["C_categorical", "D_categorical"]
+categorical_transformer = Pipeline(steps=[("encoder", OneHotEncoder())])
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ("num", numeric_transformer, numeric_features),
+        ("cat", categorical_transformer, categorical_features),
+    ]
+)
+
+cos_sim = CosineSimilarityTopK(top_k=50)
+
+pipe = Pipeline(steps=[("preprocessor", preprocessor), ("cos_sim", cos_sim)])
+pipe.fit_transform(df)
+```
+```
+<100000x100000 sparse matrix of type '<class 'numpy.float64'>'
+	with 5000000 stored elements in Compressed Sparse Row format>
+```
+
+Execution time
+```python
+from timeit import timeit
+
+timeit(lambda: pipe.fit_transform(df), number=1)
+```
+```
+24.45172154181637
+```
