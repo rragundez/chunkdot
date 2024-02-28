@@ -16,5 +16,5 @@ else:
         "transformer, please install scikit-learn and re-import chunkdot."
     )
 
-__version__ = "0.4.1"
+__version__ = "0.4.2"
 __all__ = ["cosine_similarity_top_k", "chunkdot", "CosineSimilarityTopK"]
