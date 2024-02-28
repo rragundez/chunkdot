@@ -2,6 +2,13 @@
 
 Multi-threaded matrix multiplication and cosine similarity calculations for dense and sparse matrices. Appropriate for calculating the K most similar items for a large number of items by chunking the item matrix representation (embeddings) and using Numba to accelerate the calculations.
 
+Use for:
+
+- [dense embeddings](#dense-embeddings)
+- [sparse embeddings](#sparse-embeddings)
+- [similarity calculation versus other embeddings](#similarity-calculation-versus-other-embeddings)
+- [CosineSimilarityTopK scikit-learn transformer](#cosinesimilaritytopk-scikit-learn-transformer)
+
 ## Related blog posts
 
 - [Cosine Similarity for 1 Trillion Pairs of Vectors
@@ -113,7 +120,7 @@ Given a pandas DataFrame with 100K rows and
 - 2 numerical columns
 - 2 categorical columns with 500 categories each
 
-use scikit-learn transformers, the standard scaler for the numerical columns and one-hot encode the categorical columns, to form an embeddings matrix of dimensions 100K x 1002 and then calculate the top 50 most similar rows per each row.
+use scikit-learn transformers, the standard scaler for the numerical columns and the one-hot encoder for the categorical columns, to form an embeddings matrix of dimensions 100K x 1002 and then calculate the top 50 most similar rows per each row.
 
 ```python
 import numpy as np
