@@ -4,6 +4,7 @@ from scipy.sparse import csr_matrix
 from scipy.sparse import rand as srand
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.pipeline import Pipeline
 
 from chunkdot import _cosine_similarity_top_k as cstk
 
@@ -477,3 +478,20 @@ def test_cosine_similarity_top_k_class_transform(monkeypatch):
         "show_progress": False,
     }
     assert kwargs == expected_kwargs
+
+
+@pytest.mark.parametrize("n_items, top_k", [(5000, 66), (10000, 100)])
+def test_cosine_similarity_top_k_class_pipeline(n_items, top_k):
+    embedding_dim = 50
+    max_memory = int(50e6)  # force chunking by taking small amount of memory ~50MB
+    np.random.seed(seed=21)
+    embeddings = np.random.randn(n_items, embedding_dim)
+    expected = cosine_similarity(embeddings)
+    expected = get_top_k(expected, top_k)
+    pipe = Pipeline(steps=[("cstk", cstk.CosineSimilarityTopK(top_k=top_k, max_memory=max_memory))])
+    assert pipe.fit(embeddings) is pipe
+    calculated = pipe.transform(embeddings)
+    assert calculated.shape == expected.shape
+    np.testing.assert_array_almost_equal(np.sort(calculated.data), np.sort(expected.data))
+    assert len(calculated.indices) == len(expected.indices)
+    np.testing.assert_array_almost_equal(calculated.indptr, expected.indptr)
