@@ -19,17 +19,25 @@ if is_package_installed("sklearn"):
 
         Args:
             top_k (int): The amount of similar items per item to return.
+            embeddings_right (np.array or scipy.sparse matrix): 2D object containing the items
+                embeddings used for cosine similarity calculations. If None, items in `embeddings`
+                will be compared with themselves.
+                Default None.
             normalize (bool): If to apply L2-norm to each row.
-            Default True.
-        max_memory (int): Maximum amount of memory to use in bytes. If None it will use the
-            available memory to the system according to chunkdot.utils.get_memory_available.
-            Default None.
-        force_memory (bool): Use max_memory even if it is bigger than the memory
-            available. This can be desired if the cosine similarity calculation is used many times
-            within the same Python process, such that objects are garbage collected but memory is
-            not marked as available to the OS. In this case is advised to set max_memory
-            to chunkdot.utils.get_memory_available at the start of your Python process.
-            Default False.
+                Default True.
+            max_memory (int): Maximum amount of memory to use in bytes. If None it will use the
+                available memory to the system according to chunkdot.utils.get_memory_available.
+                Default None.
+            force_memory (bool): Use max_memory even if it is bigger than the memory
+                available. This can be desired if the cosine similarity calculation is used many
+                times within the same Python process, such that objects are garbage collected but
+                memory is not marked as available to the OS. In this case is advised to set
+                max_memory to chunkdot.utils.get_memory_available at the start of your Python
+                process.
+                Default False.
+            show_progress (bool): Whether to show tqdm-like progress bar on chunked matrix
+                multiplications.
+                Default False.
         """
 
         def __init__(
@@ -39,14 +47,12 @@ if is_package_installed("sklearn"):
             max_memory: int = None,
             force_memory: bool = False,
             show_progress: bool = False,
-            min_abs_value=0,
         ):
             self.top_k = top_k
             self.normalize = normalize
             self.max_memory = max_memory
             self.force_memory = force_memory
             self.show_progress = show_progress
-            self.min_abs_value = min_abs_value
 
         def fit(self, X, y=None):  # noqa: N803
             """No state is needed to perform this transformation."""
@@ -55,9 +61,7 @@ if is_package_installed("sklearn"):
         def transform(self, X, y=None):  # noqa: N803
             """Calculate cosine similarity between all pairs of rows.
 
-            Only the K most similar items for each item are kept. An additional filter is applied if
-            min_abs_value is set during the creation of this class, where similarity values with
-            an absolute value less than min_abs_value are filtered out by setting them to zero.
+            Only the K most similar items for each item are kept
 
             Args:
                 X (np.array or scipy.sparse matrix): 2D object containing the items embeddings,
@@ -76,10 +80,6 @@ if is_package_installed("sklearn"):
                 force_memory=self.force_memory,
                 show_progress=self.show_progress,
             )
-            if self.min_abs_value > 0:
-                mask = np.abs(similarity_matrix.data) < self.min_abs_value
-                similarity_matrix.data[mask] = 0
-                similarity_matrix.eliminate_zeros()
             return similarity_matrix
 
 
@@ -114,8 +114,8 @@ def cosine_similarity_top_k(
             not marked as available to the OS. In this case is advised to set max_memory
             to chunkdot.utils.get_memory_available at the start of your Python process.
             Default False.
-        show_progress (bool): Whether to show tqdm-like progress bar
-            on chunked matrix multiplications.
+        show_progress (bool): Whether to show tqdm-like progress bar on chunked matrix
+            multiplications.
             Default False.
 
     Returns:

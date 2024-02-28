@@ -2,9 +2,11 @@ import numpy as np
 import pytest
 from scipy.sparse import csr_matrix
 from scipy.sparse import rand as srand
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.pipeline import Pipeline
 
-from chunkdot.cosine_similarity_top_k import cosine_similarity_top_k
+from chunkdot import _cosine_similarity_top_k as cstk
 
 
 def get_top_k(matrix, top_k):
@@ -29,7 +31,7 @@ def test_cosine_similarity_top_k_big(n_items, top_k):
     embeddings = np.random.randn(n_items, embedding_dim)
     expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
-    calculated = cosine_similarity_top_k(embeddings, top_k=top_k, max_memory=max_memory)
+    calculated = cstk.cosine_similarity_top_k(embeddings, top_k=top_k, max_memory=max_memory)
     assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(np.sort(calculated.data), np.sort(expected.data))
     assert len(calculated.indices) == len(expected.indices)
@@ -46,7 +48,7 @@ def test_cosine_similarity_top_k_big_with_right(n_items, top_k):
     embeddings_right = embeddings[idx]
     expected = cosine_similarity(embeddings, embeddings_right)
     expected = get_top_k(expected, top_k)
-    calculated = cosine_similarity_top_k(
+    calculated = cstk.cosine_similarity_top_k(
         embeddings, embeddings_right=embeddings_right, top_k=top_k, max_memory=max_memory
     )
     assert calculated.shape == expected.shape
@@ -66,7 +68,7 @@ def test_cosine_similarity_top_k_big_sparse(n_items, top_k, density, sparse_form
     )
     expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
-    calculated = cosine_similarity_top_k(embeddings, top_k=top_k, max_memory=max_memory)
+    calculated = cstk.cosine_similarity_top_k(embeddings, top_k=top_k, max_memory=max_memory)
     # There might be elements with the same similarity and it might be that in the
     # numpy implementation of get top K items returned are different than in
     # the numba implementation.
@@ -92,7 +94,7 @@ def test_cosine_similarity_top_k_big_sparse_with_right(n_items, top_k, density, 
         embeddings_right = embeddings[idx]
     expected = cosine_similarity(embeddings, embeddings_right)
     expected = get_top_k(expected, top_k)
-    calculated = cosine_similarity_top_k(
+    calculated = cstk.cosine_similarity_top_k(
         embeddings, embeddings_right=embeddings_right, top_k=top_k, max_memory=max_memory
     )
     # There might be elements with the same similarity and it might be that in the
@@ -112,7 +114,7 @@ def test_cosine_similarity_negative_top_k_big(n_items, top_k):
     embeddings = np.random.randn(n_items, embedding_dim)
     expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
-    calculated = cosine_similarity_top_k(embeddings, top_k=top_k, max_memory=max_memory)
+    calculated = cstk.cosine_similarity_top_k(embeddings, top_k=top_k, max_memory=max_memory)
     assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(calculated.toarray(), expected.toarray())
 
@@ -127,7 +129,7 @@ def test_cosine_similarity_negative_top_k_big_with_right(n_items, top_k):
     embeddings_right = embeddings[idx]
     expected = cosine_similarity(embeddings, embeddings_right)
     expected = get_top_k(expected, top_k)
-    calculated = cosine_similarity_top_k(
+    calculated = cstk.cosine_similarity_top_k(
         embeddings, embeddings_right=embeddings_right, top_k=top_k, max_memory=max_memory
     )
     assert calculated.shape == expected.shape
@@ -147,7 +149,7 @@ def test_cosine_similarity_negative_top_k_big_sparse(n_items, top_k, density, sp
     )
     expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
-    calculated = cosine_similarity_top_k(embeddings, top_k=top_k, max_memory=max_memory)
+    calculated = cstk.cosine_similarity_top_k(embeddings, top_k=top_k, max_memory=max_memory)
     # There might be elements with the same similarity and it might be that in the
     # numpy implementation of get top K items returned are different than in
     # the numba implementation.
@@ -175,7 +177,7 @@ def test_cosine_similarity_negative_top_k_big_sparse_with_right(
         embeddings_right = embeddings[idx]
     expected = cosine_similarity(embeddings, embeddings_right)
     expected = get_top_k(expected, top_k)
-    calculated = cosine_similarity_top_k(
+    calculated = cstk.cosine_similarity_top_k(
         embeddings, embeddings_right=embeddings_right, top_k=top_k, max_memory=max_memory
     )
     # There might be elements with the same similarity and it might be that in the
@@ -196,15 +198,15 @@ def test_cosine_similarity_error(n_items, as_csr_sparse):
         embeddings = csr_matrix(embeddings)
 
     with pytest.raises(ValueError):
-        cosine_similarity_top_k(embeddings, top_k=n_items)
+        cstk.cosine_similarity_top_k(embeddings, top_k=n_items)
 
     with pytest.raises(ValueError):
-        cosine_similarity_top_k(embeddings, embeddings_right=embeddings, top_k=n_items)
+        cstk.cosine_similarity_top_k(embeddings, embeddings_right=embeddings, top_k=n_items)
 
     # make max memory small such that not even one chunk can be processed
     max_memory = 16 * n_items + 8 * n_items * (2 * n_items + 1) - 10
     with pytest.raises(ValueError):
-        cosine_similarity_top_k(embeddings, top_k=n_items, max_memory=max_memory)
+        cstk.cosine_similarity_top_k(embeddings, top_k=n_items, max_memory=max_memory)
 
 
 @pytest.mark.parametrize("as_csr_sparse", [False, True])
@@ -220,7 +222,7 @@ def test_cosine_similarity_mix_type_error(as_csr_sparse):
         embeddings_right = csr_matrix(embeddings)
 
     with pytest.raises(TypeError):
-        cosine_similarity_top_k(embeddings, embeddings_right=embeddings_right, top_k=top_k)
+        cstk.cosine_similarity_top_k(embeddings, embeddings_right=embeddings_right, top_k=top_k)
 
 
 @pytest.mark.parametrize("n_items, top_k", [(10, 4), (51, 10), (100, 15), (732, 50), (1000, 77)])
@@ -233,7 +235,7 @@ def test_cosine_similarity_top_k(n_items, top_k, embedding_dim, as_csr_sparse):
         embeddings = csr_matrix(embeddings)
     expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
-    calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
+    calculated = cstk.cosine_similarity_top_k(embeddings, top_k=top_k)
     assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(np.sort(calculated.data), np.sort(expected.data))
     assert len(calculated.indices) == len(expected.indices)
@@ -252,7 +254,9 @@ def test_cosine_similarity_top_k_with_right(n_items, top_k, embedding_dim, as_cs
     embeddings_right = embeddings[idx]
     expected = cosine_similarity(embeddings, embeddings_right)
     expected = get_top_k(expected, top_k)
-    calculated = cosine_similarity_top_k(embeddings, embeddings_right=embeddings_right, top_k=top_k)
+    calculated = cstk.cosine_similarity_top_k(
+        embeddings, embeddings_right=embeddings_right, top_k=top_k
+    )
     assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(np.sort(calculated.data), np.sort(expected.data))
     assert len(calculated.indices) == len(expected.indices)
@@ -287,9 +291,11 @@ def test_cosine_similarity_top_k_manual(input_type, as_csr_sparse, use_embedding
         ]
     ).astype(expected_type)
     if use_embeddings_right:
-        calculated = cosine_similarity_top_k(embeddings, embeddings_right=embeddings, top_k=top_k)
+        calculated = cstk.cosine_similarity_top_k(
+            embeddings, embeddings_right=embeddings, top_k=top_k
+        )
     else:
-        calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
+        calculated = cstk.cosine_similarity_top_k(embeddings, top_k=top_k)
     assert calculated.dtype == expected.dtype
     assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(calculated.toarray(), expected)
@@ -323,9 +329,11 @@ def test_cosine_similarity_top_k_manual_unit(input_type, as_csr_sparse, use_embe
         ]
     ).astype(expected_type)
     if use_embeddings_right:
-        calculated = cosine_similarity_top_k(embeddings, embeddings_right=embeddings, top_k=top_k)
+        calculated = cstk.cosine_similarity_top_k(
+            embeddings, embeddings_right=embeddings, top_k=top_k
+        )
     else:
-        calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
+        calculated = cstk.cosine_similarity_top_k(embeddings, top_k=top_k)
     assert calculated.dtype == expected.dtype
     assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(calculated.toarray(), expected)
@@ -359,9 +367,11 @@ def test_cosine_similarity_negative_top_k_manual(input_type, as_csr_sparse, use_
         ]
     ).astype(expected_type)
     if use_embeddings_right:
-        calculated = cosine_similarity_top_k(embeddings, embeddings_right=embeddings, top_k=top_k)
+        calculated = cstk.cosine_similarity_top_k(
+            embeddings, embeddings_right=embeddings, top_k=top_k
+        )
     else:
-        calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
+        calculated = cstk.cosine_similarity_top_k(embeddings, top_k=top_k)
     assert calculated.dtype == expected.dtype
     assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(calculated.toarray(), expected)
@@ -382,11 +392,11 @@ def test_cosine_similarity_top_k_zero_rows(top_k, as_csr_sparse, use_embeddings_
         expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
     if use_embeddings_right:
-        calculated = cosine_similarity_top_k(
+        calculated = cstk.cosine_similarity_top_k(
             embeddings, embeddings_right=embeddings_right, top_k=top_k
         )
     else:
-        calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
+        calculated = cstk.cosine_similarity_top_k(embeddings, top_k=top_k)
     assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(np.sort(calculated.data), np.sort(expected.data))
     assert len(calculated.indices) == len(expected.indices)
@@ -408,11 +418,11 @@ def test_cosine_similarity_negative_top_k_zero_rows(top_k, as_csr_sparse, use_em
         expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
     if use_embeddings_right:
-        calculated = cosine_similarity_top_k(
+        calculated = cstk.cosine_similarity_top_k(
             embeddings, embeddings_right=embeddings_right, top_k=top_k
         )
     else:
-        calculated = cosine_similarity_top_k(embeddings, top_k=top_k)
+        calculated = cstk.cosine_similarity_top_k(embeddings, top_k=top_k)
     assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(np.sort(calculated.data), np.sort(expected.data))
     assert len(calculated.indices) == len(expected.indices)
@@ -429,8 +439,58 @@ def test_cosine_similarity_with_progress_bar(n_items, top_k, show_progress, as_c
         embeddings = csr_matrix(embeddings)
     expected = cosine_similarity(embeddings)
     expected = get_top_k(expected, top_k)
-    calculated = cosine_similarity_top_k(
+    calculated = cstk.cosine_similarity_top_k(
         embeddings, top_k=top_k, max_memory=max_memory, show_progress=show_progress
     )
     assert calculated.shape == expected.shape
     np.testing.assert_array_almost_equal(calculated.toarray(), expected.toarray())
+
+
+def test_cosine_similarity_top_k_class():
+    hasattr(cstk.CosineSimilarityTopK, "fit")
+    hasattr(cstk.CosineSimilarityTopK, "transform")
+
+    top_k = 10
+    transformer = cstk.CosineSimilarityTopK(top_k=top_k)
+    assert isinstance(transformer, BaseEstimator)
+    assert isinstance(transformer, TransformerMixin)
+    assert transformer.top_k == top_k
+    assert transformer.normalize
+    assert transformer.max_memory is None
+    assert not transformer.force_memory
+    assert not transformer.show_progress
+    assert transformer.fit(None) is transformer
+
+
+def test_cosine_similarity_top_k_class_transform(monkeypatch):
+    monkeypatch.setattr(cstk, "cosine_similarity_top_k", lambda **kwargs: kwargs)
+    top_k = 10
+    transformer = cstk.CosineSimilarityTopK(top_k=top_k)
+    my_x = "something"
+    kwargs = transformer.transform(my_x)
+    expected_kwargs = {
+        "embeddings": my_x,
+        "top_k": top_k,
+        "normalize": True,
+        "max_memory": None,
+        "force_memory": False,
+        "show_progress": False,
+    }
+    assert kwargs == expected_kwargs
+
+
+@pytest.mark.parametrize("n_items, top_k", [(5000, 66), (10000, 100)])
+def test_cosine_similarity_top_k_class_pipeline(n_items, top_k):
+    embedding_dim = 50
+    max_memory = int(50e6)  # force chunking by taking small amount of memory ~50MB
+    np.random.seed(seed=21)
+    embeddings = np.random.randn(n_items, embedding_dim)
+    expected = cosine_similarity(embeddings)
+    expected = get_top_k(expected, top_k)
+    pipe = Pipeline(steps=[("cstk", cstk.CosineSimilarityTopK(top_k=top_k, max_memory=max_memory))])
+    assert pipe.fit(embeddings) is pipe
+    calculated = pipe.transform(embeddings)
+    assert calculated.shape == expected.shape
+    np.testing.assert_array_almost_equal(np.sort(calculated.data), np.sort(expected.data))
+    assert len(calculated.indices) == len(expected.indices)
+    np.testing.assert_array_almost_equal(calculated.indptr, expected.indptr)
