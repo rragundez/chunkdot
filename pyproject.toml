@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "chunkdot"
-version = "0.3.0"
+version = "0.4.0"
 description = "Multi-threaded matrix multiplication and cosine similarity calculations."
 authors = ["Rodrigo Agundez <rragundez@gmail.com>"]
 readme = "README.md"
