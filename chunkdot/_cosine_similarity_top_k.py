@@ -61,9 +61,7 @@ if is_package_installed("sklearn"):
         def transform(self, X, y=None):  # noqa: N803
             """Calculate cosine similarity between all pairs of rows.
 
-            Only the K most similar items for each item are kept. An additional filter is applied if
-            min_abs_value is set during the creation of this class, where similarity values with
-            an absolute value less than min_abs_value are filtered out by setting them to zero.
+            Only the K most similar items for each item are kept
 
             Args:
                 X (np.array or scipy.sparse matrix): 2D object containing the items embeddings,

@@ -459,7 +459,6 @@ def test_cosine_similarity_top_k_class():
     assert transformer.max_memory is None
     assert not transformer.force_memory
     assert not transformer.show_progress
-    assert transformer.min_abs_value == 0
     assert transformer.fit(None) is transformer
 
 
